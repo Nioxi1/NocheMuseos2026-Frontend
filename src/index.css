@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-sans;
+    background-color: #fcfaef;
+    /* Fallback for variable */
+  }
+}
+
+@layer utilities {
+  .ai-glow {
+    animation: pulse-glow 2s infinite alternate;
+  }
+
+  @keyframes pulse-glow {
+    from {
+      box-shadow: 0 0 10px rgba(238, 210, 2, 0.2);
+    }
+
+    to {
+      box-shadow: 0 0 20px rgba(238, 210, 2, 0.5);
+    }
+  }
+
+  .map-container {
+    background-image: radial-gradient(circle at 2px 2px, rgba(45, 90, 39, 0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+
+  .glass-panel {
+    background: rgba(252, 250, 239, 0.8);
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(45, 90, 39, 0.15);
+  }
+
+  .route-card-shadow {
+    box-shadow: 0 4px 20px 0 rgba(27, 48, 34, 0.05);
+  }
+
+  .optimal-glow {
+    box-shadow: 0 0 15px rgba(238, 210, 2, 0.3);
+  }
+
+  /* Custom Scrollbar for Drawer/Lists */
+  .custom-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-track {
+    background: rgba(45, 90, 39, 0.05);
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: #2D5A27;
+    border-radius: 10px;
+  }
+}

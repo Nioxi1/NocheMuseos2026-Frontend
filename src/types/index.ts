@@ -1,0 +1,56 @@
+export interface Museo {
+  id: string;
+  nombre: string;
+  categoria: 'Colonial' | 'Historia' | 'Arte' | 'Religioso' | 'Contemporáneo' | 'Otro';
+  precio: number; // en Bs
+  tiempoEstimado: number; // en horas
+  coordenadas: {
+    lat: number;
+    lng: number;
+  };
+  imagenUrl: string;
+  descripcion?: string;
+  afluenciaActual?: 'Baja' | 'Media' | 'Alta';
+  horarioApertura?: string;
+  horarioCierre?: string;
+}
+
+export interface Ruta {
+  id: string;
+  tipo: 'Recomendada' | 'Privado' | 'Caminata';
+  tiempoTotalMinutos: number;
+  costoEstimadoBs: number;
+  pasos: PasoRuta[];
+  distanciaMetros?: number;
+}
+
+export interface PasoRuta {
+  id: string;
+  modo: 'Bus' | 'Caminata' | 'Espera';
+  instruccion: string;
+  duracionMinutos: number;
+  origen: string;
+  destino: string;
+  lineaBus?: string; // Ej: "Trufi 106"
+}
+
+export interface AppState {
+  // Preferencias de usuario
+  presupuestoMax: number;
+  tiempoDisponibleHoras: number;
+  setPresupuesto: (p: number) => void;
+  setTiempoDisponible: (t: number) => void;
+
+  // Museos seleccionados
+  museosSeleccionados: Museo[];
+  toggleMuseo: (m: Museo) => void;
+  limpiarMuseos: () => void;
+
+  // Ubicación origen
+  puntoPartida: { lat: number, lng: number, direccion: string } | null;
+  setPuntoPartida: (punto: { lat: number, lng: number, direccion: string }) => void;
+
+  // Ruta actual seleccionada
+  rutaActiva: Ruta | null;
+  setRutaActiva: (ruta: Ruta) => void;
+}
