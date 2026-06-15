@@ -219,11 +219,10 @@ export const calculateTrufiRoute = async (
   // Ordenar destinos usando Nearest Neighbor (TSP) respetando el primer destino si se seleccionó
   const destinosOrdenados = sortDestinations(origen, destinos, primerMuseoId);
 
-  // Crear la lista completa de puntos a visitar: Origen -> Museos en orden -> Regreso al Origen
+  // Crear la lista completa de puntos a visitar: Origen -> Museos en orden (sin retorno al origen)
   const puntosRuta = [
     { ...origen, nombre: 'Inicio (Tu Ubicación)' },
-    ...destinosOrdenados,
-    { ...origen, nombre: 'Fin (Retorno)' }
+    ...destinosOrdenados
   ];
 
   let totalDurationSeconds = 0;
@@ -345,17 +344,15 @@ export const calculateTrufiRoute = async (
       });
     });
 
-    // Añadir un paso intermedio representando la visita al museo, excepto en el último retorno
-    if (i < puntosRuta.length - 2) {
-      pasos.push({
-        id: `visita-${i}-${Date.now()}`,
-        modo: 'Espera',
-        instruccion: `Visita cultural en: ${ptB.nombre}`,
-        duracionMinutos: 60, // 1 hora de visita estimada
-        origen: ptB.nombre || 'Museo',
-        destino: ptB.nombre || 'Museo'
-      });
-    }
+    // Añadir un paso intermedio representando la visita al museo en cada destino
+    pasos.push({
+      id: `visita-${i}-${Date.now()}`,
+      modo: 'Espera',
+      instruccion: `Visita cultural en: ${ptB.nombre}`,
+      duracionMinutos: 60, // 1 hora de visita estimada
+      origen: ptB.nombre || 'Museo',
+      destino: ptB.nombre || 'Museo'
+    });
   }
 
   // Estimar el costo total del trayecto en Bolivianos

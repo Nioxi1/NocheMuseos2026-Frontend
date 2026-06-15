@@ -4,7 +4,7 @@ import L from 'leaflet';
 import { useAppStore } from '../store/appState';
 import { useMuseos } from '../hooks/useMuseos';
 import clsx from 'clsx';
-import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf } from 'react-icons/md';
+import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf, MdGpsFixed } from 'react-icons/md';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -55,6 +55,8 @@ const MapaReal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [geoLocating, setGeoLocating] = useState(false);
   const [route, setRoute] = useState<any>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
   const [selectedMuseumForDetail, setSelectedMuseumForDetail] = useState<any | null>(null);
@@ -131,11 +133,41 @@ const MapaReal: React.FC = () => {
       direccion: suggestion.display_name 
     });
     setShowSuggestions(false);
+    setShowDropdown(false);
+  };
+
+  // Use browser geolocation to mark current position
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setGeoLocating(true);
+    setShowDropdown(false);
+    setShowSuggestions(false);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setMarkerPos(new L.LatLng(lat, lng));
+        setPuntoPartida({ lat, lng, direccion: 'Mi ubicación actual' });
+        setSearchValue('Mi ubicación actual');
+        setGeoLocating(false);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        alert('No se pudo obtener tu ubicación. Verifica los permisos del navegador.');
+        setGeoLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleMapClick = (latlng: L.LatLng) => {
     setMarkerPos(latlng);
     setPuntoPartida({ lat: latlng.lat, lng: latlng.lng, direccion: 'Ubicación seleccionada en el mapa' });
+    setShowDropdown(false);
+    setShowSuggestions(false);
   };
 
   // Calculate route when start point or selected museums change
@@ -217,6 +249,7 @@ const MapaReal: React.FC = () => {
                       setSearchValue(e.target.value);
                       fetchSuggestions(e.target.value);
                     }}
+                    onFocus={() => setShowDropdown(true)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     className="w-full bg-surface-container-highest border-none rounded-lg pl-xl pr-12 px-md py-sm text-body-lg focus:ring-2 focus:ring-primary transition-all" 
                     placeholder="Ej. Plaza Principal"
@@ -224,15 +257,24 @@ const MapaReal: React.FC = () => {
                   <MdLocationOn className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary" size={20} />
                   <button 
                     onClick={handleSearch} 
-                    disabled={isLoading}
+                    disabled={isLoading || geoLocating}
                     className="ml-2 bg-secondary text-white px-3 py-2 rounded-lg font-bold"
                   >
                     {isLoading ? '...' : 'Buscar'}
                   </button>
                 </div>
-                {/* Autocomplete suggestions dropdown */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <ul className="absolute z-50 bg-surface border border-outline-variant rounded-lg shadow-lg w-full max-h-48 overflow-y-auto mt-1">
+                {/* Dropdown: GPS option + autocomplete suggestions */}
+                {(showDropdown || (showSuggestions && suggestions.length > 0)) && (
+                  <ul className="absolute z-50 bg-surface border border-outline-variant rounded-lg shadow-lg w-full max-h-56 overflow-y-auto mt-1">
+                    {/* GPS: Use current location - always first */}
+                    <li
+                      onClick={handleUseCurrentLocation}
+                      className="px-3 py-2.5 hover:bg-primary/5 cursor-pointer text-sm border-b border-outline-variant/15 flex items-center gap-2 font-semibold text-primary"
+                    >
+                      <MdGpsFixed size={18} className={geoLocating ? 'animate-spin' : ''} />
+                      <span>{geoLocating ? 'Obteniendo ubicación...' : 'Marcar posición actual'}</span>
+                    </li>
+                    {/* Autocomplete suggestions */}
                     {suggestions.map((s, i) => (
                       <li
                         key={i}

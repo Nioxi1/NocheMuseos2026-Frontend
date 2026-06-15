@@ -448,9 +448,9 @@ const TarjetaAlternativa = () => {
   return (
     <div className="flex flex-col md:flex-row h-full w-full relative overflow-hidden bg-background">
       {/* Sidebar - Comparación y detalles */}
-      <aside className="w-full h-1/2 md:h-full md:w-[420px] bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant/15 flex flex-col z-20 shadow-xl md:shadow-none shrink-0 overflow-y-auto custom-scroll">
-        {/* Header */}
-        <div className="p-4 border-b border-outline-variant/10 sticky top-0 bg-surface-container-low/95 backdrop-blur-md z-10 space-y-3">
+      <aside className="w-full h-1/2 md:h-full md:w-[420px] bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant/15 flex flex-col z-20 shadow-xl md:shadow-none shrink-0">
+        {/* Header - fixed, non-scrolling */}
+        <div className="p-4 border-b border-outline-variant/10 bg-surface-container-low shrink-0 space-y-3">
           <div>
             <h1 className="font-bold text-on-surface text-lg flex items-center gap-2">
               <MdSwapVert size={22} className="text-primary" />
@@ -499,8 +499,8 @@ const TarjetaAlternativa = () => {
           )}
         </div>
 
-        {/* Route options list */}
-        <div className="p-3 flex-grow space-y-3">
+        {/* Route options list - this is the only scrollable area */}
+        <div className="p-3 flex-grow overflow-y-auto custom-scroll space-y-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="relative w-16 h-16 mb-4">
@@ -651,9 +651,9 @@ const TarjetaAlternativa = () => {
           )}
         </div>
 
-        {/* Bottom action button */}
+        {/* Bottom action button - fixed, non-scrolling */}
         {mapSelection && opcionesRuta.length > 0 && (
-          <div className="p-3 bg-surface-container-low border-t border-outline-variant/10 sticky bottom-0 z-30 space-y-2">
+          <div className="p-3 bg-surface-container-low border-t border-outline-variant/10 shrink-0 space-y-2">
             {/* Selected route summary */}
             {activeOption && (
               <div className="flex items-center justify-between text-[11px] px-1 text-on-surface-variant">
