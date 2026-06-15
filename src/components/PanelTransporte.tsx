@@ -3,6 +3,7 @@ import { MdMyLocation, MdPlayArrow, MdStop, MdDirectionsBus, MdDirectionsWalk, M
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppStore } from '../store/appState';
+import { resolveMapSelection } from '../utils/mapSelection';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -79,20 +80,22 @@ const LocationTracker = ({ tracking, onLocationUpdate }: { tracking: boolean; on
 
 const PanelTransporte = () => {
   const navigate = useNavigate();
-  const { puntoPartida, rutaActiva, presupuestoMax, tiempoDisponibleHoras } = useAppStore();
+  const { puntoPartida, museosSeleccionados, rutaActiva, presupuestoMax, tiempoDisponibleHoras } = useAppStore();
   const [mapSelection, setMapSelection] = useState<any>(null);
   const [tracking, setTracking] = useState(false);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const stepsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load map selection from sessionStorage (same source as Comparar Rutas)
   useEffect(() => {
-    const saved = sessionStorage.getItem('mapSelection');
-    if (saved) {
-      setMapSelection(JSON.parse(saved));
+    const origen = puntoPartida
+      ? { lat: puntoPartida.lat, lng: puntoPartida.lng }
+      : null;
+    const data = resolveMapSelection(origen, museosSeleccionados);
+    if (data) {
+      setMapSelection(data);
     }
-  }, []);
+  }, [puntoPartida, museosSeleccionados]);
 
   const ruta = rutaActiva;
   const start = mapSelection?.origen || (puntoPartida ? { lat: puntoPartida.lat, lng: puntoPartida.lng } : { lat: -17.3935, lng: -66.1568 });

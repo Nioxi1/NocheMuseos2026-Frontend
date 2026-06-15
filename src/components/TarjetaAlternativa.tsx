@@ -4,6 +4,7 @@ import { MdDirectionsBus, MdSchedule, MdPayments, MdDirectionsWalk, MdLocalTaxi,
 import clsx from 'clsx';
 import { useAppStore } from '../store/appState';
 import { calculateTrufiRoute } from '../services/trufiRouting';
+import { resolveMapSelection, saveMapSelection } from '../utils/mapSelection';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -63,7 +64,7 @@ function formatDuration(mins: number): string {
 
 const TarjetaAlternativa = () => {
   const navigate = useNavigate();
-  const { setRutaActiva, presupuestoMax, tiempoDisponibleHoras } = useAppStore();
+  const { setRutaActiva, presupuestoMax, tiempoDisponibleHoras, puntoPartida, museosSeleccionados } = useAppStore();
   const [seleccion, setSeleccion] = useState('');
   const [opcionesRuta, setOpcionesRuta] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,20 +74,30 @@ const TarjetaAlternativa = () => {
   const [hoveredLeg, setHoveredLeg] = useState<number | null>(null);
 
   useEffect(() => {
-    // Load map selection from sessionStorage
-    const savedSelection = sessionStorage.getItem('mapSelection');
-    if (savedSelection) {
-      const data = JSON.parse(savedSelection);
+    const origen = puntoPartida
+      ? { lat: puntoPartida.lat, lng: puntoPartida.lng }
+      : null;
+    const data = resolveMapSelection(origen, museosSeleccionados);
+
+    if (data) {
       setMapSelection(data);
-      const initialFirstId = data.museos?.[0]?.id || '';
+      saveMapSelection(data);
+      const initialFirstId = data.museos[0]?.id || '';
       setPrimerMuseoId(initialFirstId);
       fetchTransportOptions(data, initialFirstId);
     } else {
+      setMapSelection(null);
       setLoading(false);
     }
   }, []);
 
   const fetchTransportOptions = async (data: any, pMuseoId?: string) => {
+    if (!data?.origen?.lat || !data?.museos?.length) {
+      setOpcionesRuta([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const activeFirstId = pMuseoId ?? '';
     try {

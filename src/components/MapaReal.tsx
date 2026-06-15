@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { useAppStore } from '../store/appState';
 import { useMuseos } from '../hooks/useMuseos';
+import type { Museo } from '../types';
 import clsx from 'clsx';
-import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf, MdGpsFixed } from 'react-icons/md';
+import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf, MdGpsFixed, MdSearch, MdAdd, MdDeleteOutline } from 'react-icons/md';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { buildMapSelection, saveMapSelection } from '../utils/mapSelection';
 
 // Fix for default Leaflet icons in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -35,6 +37,30 @@ const museumIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const FitMapView = ({
+  museos,
+  startPos,
+}: {
+  museos: Museo[];
+  startPos: L.LatLng | null;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (startPos) {
+      map.setView([startPos.lat, startPos.lng], 14);
+      return;
+    }
+    if (museos.length === 0) return;
+    const bounds = L.latLngBounds(
+      museos.map(m => [m.coordenadas.lat, m.coordenadas.lng] as [number, number])
+    );
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+  }, [map, museos, startPos]);
+
+  return null;
+};
+
 // Map Component to handle clicks
 const MapEvents = ({ setPos, closeDetail }: { setPos: (latlng: L.LatLng) => void; closeDetail: () => void }) => {
   useMapEvents({
@@ -48,9 +74,10 @@ const MapEvents = ({ setPos, closeDetail }: { setPos: (latlng: L.LatLng) => void
 
 const MapaReal: React.FC = () => {
   const navigate = useNavigate();
-  const { museosSeleccionados, toggleMuseo, puntoPartida, setPuntoPartida } = useAppStore();
+  const { museosSeleccionados, toggleMuseo, limpiarMuseos, puntoPartida, setPuntoPartida } = useAppStore();
   const { museos } = useMuseos();
   const [searchValue, setSearchValue] = useState('');
+  const [museumSearch, setMuseumSearch] = useState('');
   const [markerPos, setMarkerPos] = useState<L.LatLng | null>(puntoPartida ? new L.LatLng(puntoPartida.lat, puntoPartida.lng) : null);
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -60,6 +87,23 @@ const MapaReal: React.FC = () => {
   const [route, setRoute] = useState<any>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
   const [selectedMuseumForDetail, setSelectedMuseumForDetail] = useState<any | null>(null);
+
+  // Reiniciar selección al entrar al mapa
+  useEffect(() => {
+    limpiarMuseos();
+  }, [limpiarMuseos]);
+
+  const filteredMuseos = museumSearch.trim()
+    ? museos.filter(m => {
+        const q = museumSearch.toLowerCase();
+        return (
+          m.nombre.toLowerCase().includes(q) ||
+          m.categoria.toLowerCase().includes(q)
+        );
+      }).slice(0, 8)
+    : [];
+
+  const canProceed = Boolean(markerPos && museosSeleccionados.length > 0);
 
   const renderStars = (rating: number) => {
     const stars = [];
@@ -208,29 +252,26 @@ const MapaReal: React.FC = () => {
   }, [markerPos, museosSeleccionados]);
 
   const handleNavigateToComparar = () => {
-    // Store the current selection in sessionStorage for the Comparar Rutas page
-    sessionStorage.setItem('mapSelection', JSON.stringify({
-      origen: markerPos ? { lat: markerPos.lat, lng: markerPos.lng } : null,
-      museos: museosSeleccionados.map(m => ({
-        id: m.id,
-        nombre: m.nombre,
-        lat: (m as any).coordenadas.lat,
-        lng: (m as any).coordenadas.lng,
-        precio: (m as any).precio,
-        tiempoEstimado: (m as any).tiempoEstimado,
-        categoria: (m as any).categoria,
-        imagenUrl: (m as any).imagenUrl,
-        descripcion: (m as any).descripcion
-      }))
-    }));
+    if (!markerPos || museosSeleccionados.length === 0) {
+      alert('Marca tu punto de partida y agrega al menos un museo antes de continuar.');
+      return;
+    }
+
+    const selection = buildMapSelection(
+      { lat: markerPos.lat, lng: markerPos.lng },
+      museosSeleccionados
+    );
+    if (!selection) return;
+
+    saveMapSelection(selection);
     navigate('/comparar');
   };
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full relative overflow-hidden">
       {/* SideNavBar / Panel Control */}
-      <aside className="w-full h-1/2 md:h-full md:w-96 bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant/15 flex flex-col z-20 shadow-xl md:shadow-none shrink-0 relative overflow-y-auto">
-        <div className="p-lg space-y-lg flex-grow">
+      <aside className="w-full h-1/2 md:h-full md:w-[420px] bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant/15 flex flex-col z-20 shadow-xl md:shadow-none shrink-0 relative overflow-hidden">
+        <div className="p-lg space-y-md flex-shrink-0 overflow-y-auto max-h-[45%] md:max-h-none">
           <div>
             <h1 className="font-headline-lg-mobile text-on-surface mb-xs font-bold">Punto de Partida</h1>
             <p className="text-body-sm text-on-surface-variant">Selecciona dónde comienza tu aventura cultural hoy.</p>
@@ -286,7 +327,6 @@ const MapaReal: React.FC = () => {
                     ))}
                   </ul>
                 )}
-              </div>
             </div>
             
             <div className="flex items-center gap-base py-base">
@@ -297,42 +337,127 @@ const MapaReal: React.FC = () => {
             
             {/* Map Interaction Help - Comment */}
             <div className="w-full flex items-center justify-center gap-base p-md border-2 border-dashed border-secondary/30 rounded-xl bg-surface-container/50">
-                            <MdTouchApp className="text-secondary" />
+              <MdTouchApp className="text-secondary" />
               <span className="font-title-md text-secondary text-sm">Haz clic en el mapa para marcar tu inicio</span>
             </div>
           </div>
-          
-          {/* Selected Museums Summary */}
-          <div className="bg-surface-container-high rounded-xl p-md border border-outline-variant/10">
-            <div className="flex justify-between items-center mb-sm">
-              <h3 className="font-label-md text-on-surface">MUSEOS SELECCIONADOS</h3>
-              <span className="bg-primary text-on-primary-fixed text-xs px-2 py-0.5 rounded-full font-bold">{museosSeleccionados.length}</span>
+        </div>
+
+        {/* Museos seleccionados — panel ampliado con buscador */}
+        <div className="flex-grow flex flex-col min-h-0 mx-lg mb-md bg-surface-container-high rounded-xl border border-outline-variant/10 overflow-hidden">
+            <div className="p-md border-b border-outline-variant/10 space-y-sm shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="font-label-md text-on-surface font-bold">MUSEOS SELECCIONADOS</h3>
+                <span className="bg-primary text-on-primary-fixed text-xs px-2.5 py-0.5 rounded-full font-bold">
+                  {museosSeleccionados.length}
+                </span>
+              </div>
+              <div className="relative">
+                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
+                <input
+                  type="text"
+                  value={museumSearch}
+                  onChange={(e) => setMuseumSearch(e.target.value)}
+                  placeholder="Buscar museo por nombre o categoría..."
+                  className="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-3 py-2.5 text-body-sm focus:ring-2 focus:ring-primary transition-all"
+                />
+              </div>
             </div>
-            <ul className="space-y-sm">
+
+            {museumSearch.trim() && (
+              <ul className="max-h-36 overflow-y-auto border-b border-outline-variant/10 shrink-0">
+                {filteredMuseos.length > 0 ? (
+                  filteredMuseos.map(m => {
+                    const yaSeleccionado = museosSeleccionados.some(s => s.id === m.id);
+                    return (
+                      <li
+                        key={m.id}
+                        className="flex items-center justify-between gap-2 px-md py-2 hover:bg-surface-container transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
+                          <p className="text-[10px] text-on-surface-variant uppercase">{m.categoria}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => !yaSeleccionado && toggleMuseo(m)}
+                          disabled={yaSeleccionado}
+                          className={clsx(
+                            'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                            yaSeleccionado
+                              ? 'bg-secondary/20 text-secondary cursor-default'
+                              : 'bg-primary text-on-primary-fixed hover:bg-primary-container'
+                          )}
+                        >
+                          {yaSeleccionado ? 'Agregado' : <><MdAdd size={14} /> Agregar</>}
+                        </button>
+                      </li>
+                    );
+                  })
+                ) : (
+                  <li className="px-md py-3 text-body-sm text-on-surface-variant italic">
+                    No se encontraron museos
+                  </li>
+                )}
+              </ul>
+            )}
+
+            <ul className="flex-grow overflow-y-auto p-md space-y-2 min-h-[140px]">
               {museosSeleccionados.length > 0 ? (
                 museosSeleccionados.map(m => (
-                  <li key={m.id} className="flex items-center gap-sm">
-                    <span className="w-2 h-2 rounded-full bg-secondary"></span>
-                    <span className="text-body-sm text-on-surface-variant">{m.nombre}</span>
+                  <li
+                    key={m.id}
+                    className="flex items-center gap-sm bg-surface-container rounded-lg px-3 py-2.5 border border-outline-variant/10 group"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-secondary shrink-0"></span>
+                    <div className="flex-grow min-w-0">
+                      <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
+                      <p className="text-[10px] text-on-surface-variant">{m.categoria}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleMuseo(m)}
+                      className="shrink-0 p-1.5 rounded-lg text-error hover:bg-error/10 transition-colors"
+                      title="Quitar museo"
+                    >
+                      <MdDeleteOutline size={18} />
+                    </button>
                   </li>
                 ))
               ) : (
-                <li className="text-body-sm text-on-surface-variant italic">Ningún museo seleccionado</li>
+                <li className="flex flex-col items-center justify-center py-8 text-center px-4">
+                  <MdSearch size={32} className="text-outline/40 mb-2" />
+                  <p className="text-body-sm text-on-surface-variant">
+                    Ningún museo seleccionado. Usa el buscador o haz clic en un marcador del mapa.
+                  </p>
+                </li>
               )}
             </ul>
           </div>
         
         {/* Footer Action */}
-        <div className="p-lg bg-surface-container-low border-t border-outline-variant/10 sticky bottom-0">
+        <div className="p-lg bg-surface-container-low border-t border-outline-variant/10 shrink-0">
+          {!markerPos && museosSeleccionados.length > 0 && (
+            <p className="text-[11px] text-tertiary-fixed mb-2 text-center font-medium">
+              Falta marcar tu punto de partida
+            </p>
+          )}
           <button 
             onClick={handleNavigateToComparar}
+            disabled={!canProceed}
             className={clsx(
               "w-full font-headline-lg-mobile text-sm py-md rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-base",
-              "bg-primary hover:bg-primary-container text-on-primary-fixed"
+              canProceed
+                ? "bg-primary hover:bg-primary-container text-on-primary-fixed"
+                : "bg-outline-variant/30 text-on-surface-variant cursor-not-allowed"
             )}
           >
-            <MdAutoFixHigh className="text-white" size={20} />
-            {museosSeleccionados.length === 0 ? "Selecciona museos" : "Seleccionar Ruta"}
+            <MdAutoFixHigh size={20} />
+            {!markerPos
+              ? 'Marca tu punto de partida'
+              : museosSeleccionados.length === 0
+                ? 'Selecciona museos'
+                : 'Comparar Rutas'}
           </button>
         </div>
       </aside>
@@ -350,7 +475,8 @@ const MapaReal: React.FC = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapEvents setPos={handleMapClick} closeDetail={() => setSelectedMuseumForDetail(null)} />
-            
+            <FitMapView museos={museos} startPos={markerPos} />
+
             {markerPos ? (
                 <Marker position={[markerPos.lat, markerPos.lng]} icon={startIcon}>
                   <Popup>Tu punto de inicio</Popup>
@@ -360,7 +486,7 @@ const MapaReal: React.FC = () => {
           {museosSeleccionados.map(m => (
             <Marker 
               key={`selected-${m.id}`} 
-              position={[(m as any).coordenadas.lat, (m as any).coordenadas.lng]} 
+              position={[m.coordenadas.lat, m.coordenadas.lng]} 
               icon={museumIcon}
               eventHandlers={{
                 click: () => {
@@ -380,11 +506,13 @@ const MapaReal: React.FC = () => {
             />
           )}
 
-          {/* Show all museums as selectable markers */}
-          {museos.map(m => (
+          {/* Museos disponibles (no seleccionados) */}
+          {museos
+            .filter(m => !museosSeleccionados.some(s => s.id === m.id))
+            .map(m => (
             <Marker 
               key={m.id} 
-              position={[(m as any).coordenadas.lat, (m as any).coordenadas.lng]} 
+              position={[m.coordenadas.lat, m.coordenadas.lng]} 
               icon={museumIcon}
               eventHandlers={{
                 click: () => {
