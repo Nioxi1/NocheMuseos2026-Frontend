@@ -22,6 +22,15 @@ export interface Ruta {
   costoEstimadoBs: number;
   pasos: PasoRuta[];
   distanciaMetros?: number;
+  geometry?: {
+    type: 'LineString';
+    coordinates: number[][]; // [lng, lat]
+  };
+  geometryLegs?: {
+    mode: 'BUS' | 'WALK' | 'CAR';
+    positions: [number, number][]; // [lat, lng]
+    lineName?: string;
+  }[];
 }
 
 export interface PasoRuta {

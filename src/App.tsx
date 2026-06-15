@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
+import clsx from 'clsx';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import FormularioRestricciones from './components/FormularioRestricciones';
@@ -41,18 +42,36 @@ function App() {
 
         {/* Bottom Nav for mobile */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-low shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex justify-around items-center py-base px-container-margin z-50">
-          <a className="flex flex-col items-center gap-xs text-primary" href="/planificador">
+          <NavLink 
+            to="/planificador"
+            className={({ isActive }) => clsx(
+              "flex flex-col items-center gap-xs transition-colors",
+              isActive ? "text-primary font-bold" : "text-on-surface-variant hover:text-primary"
+            )}
+          >
             <MdExplore size={24} />
-            <span className="text-[10px] font-bold">Explorar</span>
-          </a>
-          <a className="flex flex-col items-center gap-xs text-on-surface-variant" href="/comparar">
+            <span className="text-[10px]">Explorar</span>
+          </NavLink>
+          <NavLink 
+            to="/comparar"
+            className={({ isActive }) => clsx(
+              "flex flex-col items-center gap-xs transition-colors",
+              isActive ? "text-primary font-bold" : "text-on-surface-variant hover:text-primary"
+            )}
+          >
             <MdRoute size={24} />
-            <span className="text-[10px] font-bold">Rutas</span>
-          </a>
-          <a className="flex flex-col items-center gap-xs text-on-surface-variant" href="/guia">
+            <span className="text-[10px]">Rutas</span>
+          </NavLink>
+          <NavLink 
+            to="/guia"
+            className={({ isActive }) => clsx(
+              "flex flex-col items-center gap-xs transition-colors",
+              isActive ? "text-primary font-bold" : "text-on-surface-variant hover:text-primary"
+            )}
+          >
             <MdAutoAwesome size={24} />
-            <span className="text-[10px] font-bold">IA Guía</span>
-          </a>
+            <span className="text-[10px]">IA Guía</span>
+          </NavLink>
         </nav>
       </div>
     </BrowserRouter>

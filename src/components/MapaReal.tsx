@@ -4,8 +4,9 @@ import L from 'leaflet';
 import { useAppStore } from '../store/appState';
 import { useMuseos } from '../hooks/useMuseos';
 import clsx from 'clsx';
-import { MdLocationOn, MdTouchApp, MdAutoFixHigh } from 'react-icons/md';
+import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf } from 'react-icons/md';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 // Fix for default Leaflet icons in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -35,18 +36,20 @@ const museumIcon = new L.Icon({
 });
 
 // Map Component to handle clicks
-const MapEvents = ({ setPos }: { setPos: (latlng: L.LatLng) => void }) => {
+const MapEvents = ({ setPos, closeDetail }: { setPos: (latlng: L.LatLng) => void; closeDetail: () => void }) => {
   useMapEvents({
     click(e) {
       setPos(e.latlng);
+      closeDetail();
     },
   });
   return null;
 };
 
 const MapaReal: React.FC = () => {
+  const navigate = useNavigate();
   const { museosSeleccionados, toggleMuseo, puntoPartida, setPuntoPartida } = useAppStore();
-  const { museos, loading } = useMuseos();
+  const { museos } = useMuseos();
   const [searchValue, setSearchValue] = useState('');
   const [markerPos, setMarkerPos] = useState<L.LatLng | null>(puntoPartida ? new L.LatLng(puntoPartida.lat, puntoPartida.lng) : null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +57,22 @@ const MapaReal: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [route, setRoute] = useState<any>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
+  const [selectedMuseumForDetail, setSelectedMuseumForDetail] = useState<any | null>(null);
+
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const floor = Math.floor(rating);
+    for (let i = 1; i <= 5; i++) {
+      if (i <= floor) {
+        stars.push(<MdStar key={i} className="text-yellow-500" size={16} />);
+      } else if (i - 0.5 === rating || (i === floor + 1 && rating % 1 !== 0)) {
+        stars.push(<MdStarHalf key={i} className="text-yellow-500" size={16} />);
+      } else {
+        stars.push(<MdStarBorder key={i} className="text-yellow-500" size={16} />);
+      }
+    }
+    return stars;
+  };
 
   // Default position: Cochabamba center
   const defaultPos = { lat: -17.3935, lng: -66.1568 };
@@ -172,7 +191,7 @@ const MapaReal: React.FC = () => {
         descripcion: (m as any).descripcion
       }))
     }));
-    window.location.href = '/comparar';
+    navigate('/comparar');
   };
 
   return (
@@ -288,7 +307,7 @@ const MapaReal: React.FC = () => {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <MapEvents setPos={handleMapClick} />
+            <MapEvents setPos={handleMapClick} closeDetail={() => setSelectedMuseumForDetail(null)} />
             
             {markerPos ? (
                 <Marker position={[markerPos.lat, markerPos.lng]} icon={startIcon}>
@@ -297,9 +316,16 @@ const MapaReal: React.FC = () => {
               ) : null}
 
           {museosSeleccionados.map(m => (
-            <Marker key={m.id} position={[(m as any).coordenadas.lat, (m as any).coordenadas.lng]} icon={museumIcon}>
-              <Popup>{m.nombre}</Popup>
-            </Marker>
+            <Marker 
+              key={`selected-${m.id}`} 
+              position={[(m as any).coordenadas.lat, (m as any).coordenadas.lng]} 
+              icon={museumIcon}
+              eventHandlers={{
+                click: () => {
+                  setSelectedMuseumForDetail(m);
+                }
+              }}
+            />
           ))}
 
           {/* Display route polyline if available */}
@@ -318,28 +344,122 @@ const MapaReal: React.FC = () => {
               key={m.id} 
               position={[(m as any).coordenadas.lat, (m as any).coordenadas.lng]} 
               icon={museumIcon}
-            >
-              <Popup>
-                <div className="font-bold mb-1">{m.nombre}</div>
-                <div className="text-sm mb-2">{m.categoria}</div>
-                <div className="text-xs mb-2">Precio: ${m.precio}</div>
-                <button
-                  onClick={() => toggleMuseo(m)}
-                  className={clsx(
-                    'px-2 py-1 rounded text-sm',
-                    museosSeleccionados.find((s) => s.id === m.id)
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-surface-container-highest text-on-surface'
-                  )}
-                >
-                  {museosSeleccionados.find((s) => s.id === m.id)
-                    ? 'Quitar de visita'
-                    : 'Agregar a visita'}
-                </button>
-              </Popup>
-            </Marker>
+              eventHandlers={{
+                click: () => {
+                  setSelectedMuseumForDetail(m);
+                }
+              }}
+            />
           ))}
         </MapContainer>
+
+        {/* Google Maps style floating detail card drawer overlay */}
+        {selectedMuseumForDetail && (
+          <div className="absolute top-4 bottom-4 left-4 w-80 md:w-96 bg-surface-container-high/95 backdrop-blur-md shadow-2xl rounded-2xl border border-outline-variant/15 flex flex-col z-[500] overflow-hidden animate-fade-in transition-all">
+            {/* Header Cover Image */}
+            <div className="h-44 w-full relative bg-surface-dim shrink-0">
+              <img 
+                src={selectedMuseumForDetail.imagenUrl} 
+                alt={selectedMuseumForDetail.nombre} 
+                className="w-full h-full object-cover"
+              />
+              <button 
+                onClick={() => setSelectedMuseumForDetail(null)}
+                className="absolute top-3 right-3 bg-black/45 hover:bg-black/65 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-md border border-white/20"
+              >
+                <MdClose size={18} />
+              </button>
+              <div className="absolute bottom-2 right-2 bg-secondary/90 px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase tracking-wider">
+                {selectedMuseumForDetail.categoria}
+              </div>
+            </div>
+
+            {/* Content Details */}
+            <div className="p-md flex-grow overflow-y-auto space-y-md custom-scroll">
+              <div>
+                <h2 className="font-bold text-on-surface text-lg md:text-xl leading-tight">
+                  {selectedMuseumForDetail.nombre}
+                </h2>
+                
+                {/* Star rating review count mock */}
+                <div className="flex items-center gap-xs mt-1 text-xs text-on-surface-variant">
+                  <span className="font-bold text-secondary text-sm">4.5</span>
+                  <div className="flex items-center">
+                    {renderStars(4.5)}
+                  </div>
+                  <span>(120)</span>
+                  <span className="text-outline">•</span>
+                  <span className="font-semibold text-primary">Museo</span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-body-sm text-on-surface-variant text-xs md:text-sm leading-relaxed">
+                {selectedMuseumForDetail.descripcion || 'Descubre la riqueza cultural y artística en este emblemático recinto histórico de la ciudad de Cochabamba.'}
+              </p>
+
+              <div className="h-px bg-outline-variant/15"></div>
+
+              {/* Schedules and info blocks */}
+              <div className="space-y-sm text-xs md:text-sm text-on-surface">
+                <div className="flex items-center gap-sm">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <MdSchedule size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wide">Horario de Visitas</div>
+                    <div className="font-semibold">
+                      {selectedMuseumForDetail.horarioApertura || '18:00'} - {selectedMuseumForDetail.horarioCierre || '23:00'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-sm">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <MdPayments size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wide">Costo de Entrada</div>
+                    <div className="font-semibold">
+                      {selectedMuseumForDetail.precio > 0 ? `Bs. ${selectedMuseumForDetail.precio.toFixed(2)}` : 'Ingreso Gratuito'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-sm">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <MdHourglassEmpty size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wide">Tiempo Sugerido</div>
+                    <div className="font-semibold">
+                      {selectedMuseumForDetail.tiempoEstimado} hrs de recorrido
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Bottom Button */}
+            <div className="p-md bg-surface-container-high border-t border-outline-variant/10 shrink-0">
+              {museosSeleccionados.some(m => m.id === selectedMuseumForDetail.id) ? (
+                <button
+                  onClick={() => toggleMuseo(selectedMuseumForDetail)}
+                  className="w-full py-sm bg-surface-container-highest hover:bg-surface-variant text-on-surface border border-outline-variant rounded-xl font-bold transition-all text-xs md:text-sm active:scale-[0.98]"
+                >
+                  Quitar de visita
+                </button>
+              ) : (
+                <button
+                  onClick={() => toggleMuseo(selectedMuseumForDetail)}
+                  className="w-full py-sm bg-primary hover:bg-primary-container text-on-primary-fixed rounded-xl font-bold transition-all text-xs md:text-sm active:scale-[0.98] shadow-md ai-glow"
+                >
+                  Agregar a visita
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* AI Insight Tooltip - Solo se muestra si hay un inicio seleccionado */}
         {markerPos && (

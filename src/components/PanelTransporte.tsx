@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MdTune, MdMyLocation, MdClose, MdPlayArrow, MdAutoAwesome, MdSync } from 'react-icons/md';
+import { useState, useEffect } from 'react';
+import { MdTune, MdMyLocation, MdClose, MdPlayArrow, MdAutoAwesome, MdSync, MdDirectionsBus, MdDirectionsWalk } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppStore } from '../store/appState';
@@ -25,7 +25,7 @@ const museumIcon = new L.Icon({
 
 const PanelTransporte = () => {
   const navigate = useNavigate();
-  const { museosSeleccionados, puntoPartida } = useAppStore();
+  const { museosSeleccionados, puntoPartida, rutaActiva } = useAppStore();
   // Default starting point if none selected
   const defaultStart = {
     lat: -17.8045,
@@ -38,6 +38,11 @@ const PanelTransporte = () => {
   const [loadingRoute, setLoadingRoute] = useState(false);
 
   useEffect(() => {
+    if (rutaActiva) {
+      setRuta(rutaActiva);
+      return;
+    }
+
     if (!puntoPartida || museosSeleccionados.length === 0) return;
 
     const fetchRoute = async () => {
@@ -47,7 +52,8 @@ const PanelTransporte = () => {
           origen: { lat: puntoPartida.lat, lng: puntoPartida.lng },
           museos: museosSeleccionados
         });
-        setRuta(response.data.ruta);
+        const rutaData = response.data.ruta || response.data;
+        setRuta(rutaData);
       } catch (error) {
         console.error("Error obteniendo ruta:", error);
       } finally {
@@ -55,12 +61,11 @@ const PanelTransporte = () => {
       }
     };
     fetchRoute();
-  }, [puntoPartida, museosSeleccionados]);
+  }, [puntoPartida, museosSeleccionados, rutaActiva]);
 
   // Si no hay punto de partida, use fallback for map rendering
   if (!puntoPartida) {
     // Show fallback UI but continue rendering map with default coordinates
-    // Optionally you could return early, but we keep map rendering using 'start'
   }
 
   const polylinePositions = ruta && ruta.geometry && ruta.geometry.type === 'LineString'
@@ -68,11 +73,25 @@ const PanelTransporte = () => {
     : [];
 
   const getPasos = () => {
-    let pasos = [
-      { id: 'start', tipo: 'Origen', color: 'bg-primary', icon: 'home', duracion: '-', desc: start.direccion }
-    ];
+    const startPoint = { id: 'start', tipo: 'Inicio', color: 'bg-primary', icon: 'home', duracion: '-', desc: start.direccion };
+    
+    if (ruta && ruta.pasos && ruta.pasos.length > 0) {
+      return [
+        startPoint,
+        ...ruta.pasos.map((p: any) => ({
+          id: p.id,
+          tipo: p.modo === 'Bus' ? 'Transporte' : p.modo === 'Espera' ? 'Visita' : 'Caminata',
+          color: p.modo === 'Bus' ? 'bg-primary' : p.modo === 'Espera' ? 'bg-secondary' : 'bg-tertiary',
+          icon: p.modo === 'Bus' ? 'directions_bus' : p.modo === 'Espera' ? 'museum' : 'directions_walk',
+          duracion: `${p.duracionMinutos} min`,
+          desc: p.instruccion
+        }))
+      ];
+    }
+
+    let pasos = [startPoint];
     if (ruta && ruta.orden) {
-      ruta.orden.forEach((nombre: str, index: number) => {
+      ruta.orden.forEach((nombre: string, index: number) => {
         pasos.push({
           id: `walk-${index}`, tipo: 'Ruta', color: 'bg-tertiary', icon: 'directions_walk', duracion: 'Simulado', desc: 'Sigue la ruta verde'
         });
@@ -106,11 +125,19 @@ const PanelTransporte = () => {
             <div className="text-center p-xl">Calculando ruta con OSRM...</div>
           ) : (
             <div className="space-y-xl relative z-10">
-              {pasos.map((paso, index) => (
+              {pasos.map((paso) => (
                 <div key={paso.id} className="flex gap-md group cursor-pointer">
                   <div className="flex flex-col items-center">
                     <div className={clsx("w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md z-10 group-hover:scale-110 transition-transform", paso.color)}>
-                      <MdAutoAwesome className="text-sm" />
+                      {paso.icon === 'home' ? (
+                        <MdMyLocation className="text-sm" />
+                      ) : paso.icon === 'directions_bus' ? (
+                        <MdDirectionsBus className="text-sm" />
+                      ) : paso.icon === 'museum' ? (
+                        <MdAutoAwesome className="text-sm" />
+                      ) : (
+                        <MdDirectionsWalk className="text-sm" />
+                      )}
                     </div>
                   </div>
                   <div className="flex-grow bg-surface-container-highest/50 p-sm rounded-xl group-hover:bg-surface-container-high transition-colors border border-outline-variant/10">
@@ -159,15 +186,35 @@ const PanelTransporte = () => {
             <Popup>Tu Inicio: {start.direccion}</Popup>
           </Marker>
 
-          {museosSeleccionados.map(m => (
-            <Marker key={m.id} position={[m.lat, m.lng]} icon={museumIcon}>
+          {museosSeleccionados.map((m: any) => (
+            <Marker key={m.id} position={[m.coordenadas.lat, m.coordenadas.lng]} icon={museumIcon}>
               <Popup>{m.nombre}</Popup>
             </Marker>
           ))}
 
-          {polylinePositions.length > 0 && (
+          {ruta && ruta.geometryLegs && ruta.geometryLegs.length > 0 ? (
+            ruta.geometryLegs.map((leg: any, idx: number) => {
+              let color = '#4caf50'; // green for transit
+              let dashArray = undefined;
+              let weight = 5;
+              if (leg.mode === 'WALK') {
+                color = '#71717a'; // gray
+                dashArray = '5, 8';
+                weight = 4;
+              } else if (leg.mode === 'CAR') {
+                color = '#3b82f6'; // blue
+              }
+              return (
+                <Polyline 
+                  key={idx} 
+                  positions={leg.positions} 
+                  pathOptions={{ color, weight, dashArray, opacity: 0.85 }} 
+                />
+              );
+            })
+          ) : polylinePositions.length > 0 ? (
             <Polyline positions={polylinePositions} pathOptions={{ color: '#4caf50', weight: 5, opacity: 0.8 }} />
-          )}
+          ) : null}
         </MapContainer>
 
         {/* Floating Controls */}
