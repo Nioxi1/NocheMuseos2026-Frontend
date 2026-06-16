@@ -14,10 +14,10 @@ const Sidebar = () => {
   return (
     <aside className="hidden md:flex h-screen w-64 lg:w-72 left-0 sticky flex-col bg-surface-container-low dark:bg-surface-container-lowest border-r border-outline-variant/15 p-md gap-base z-40 shrink-0">
       <div className="flex flex-col gap-xs mb-lg">
-        <h1 className="font-headline-lg-mobile text-primary font-bold">Nanobana</h1>
+        <h1 className="font-headline-lg-mobile text-primary font-bold">MuseitoGO</h1>
         <p className="font-label-md text-secondary">Ruta Cultural IA</p>
       </div>
-      
+
       <nav className="flex flex-col gap-xs flex-grow">
         {navItems.map((item) => (
           <NavLink
@@ -25,22 +25,16 @@ const Sidebar = () => {
             to={item.path}
             className={({ isActive }) => clsx(
               "flex items-center gap-sm px-md py-sm rounded-lg transition-all active:scale-95",
-              isActive 
-                ? "bg-secondary-container text-on-secondary-container font-bold" 
+              isActive
+                ? "bg-secondary-container text-on-secondary-container font-bold"
                 : "text-on-surface-variant hover:bg-surface-container-high"
             )}
           >
-{item.icon}
+            {item.icon}
             <span className="font-label-md text-label-md">{item.label}</span>
           </NavLink>
         ))}
       </nav>
-
-      <button className="bg-primary text-on-primary-fixed py-md rounded-xl font-bold flex items-center justify-center gap-xs hover:bg-primary-container transition-all mb-lg active:scale-95 shadow-sm">
-        <MdAdd />
-        Nueva Ruta
-      </button>
-
       <div className="flex flex-col gap-xs border-t border-outline-variant/10 pt-md">
         <a href="#" className="flex items-center gap-sm text-on-surface-variant hover:bg-surface-container-high px-md py-sm rounded-lg transition-colors">
           <MdSettings />

@@ -188,6 +188,55 @@ async function fetchSingleOTPRoute(
 }
 
 /**
+ * Consulta el backend local para obtener una ruta de transporte público (Trufi/Micro/Bus)
+ */
+async function fetchLocalTransportRoute(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): Promise<any> {
+  try {
+    const res = await fetch(`http://localhost:8000/api/transporte_publico`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen: from,
+        destino: to
+      }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    
+    // Transformar el formato del backend al formato "itinerary" de OTP que espera el resto del código
+    return {
+      duration: data.duracion_seg,
+      legs: [
+        {
+          mode: 'BUS',
+          duration: data.duracion_seg,
+          legGeometry: {
+            // Encode points back to polyline is complex, but the code also handles raw points
+            // So we'll pass the points directly if possible or mock the points field
+            points: null 
+          },
+          rawPoints: data.puntos, // Pass custom field with local points
+          route: {
+            shortName: data.referencia,
+            longName: data.nombre
+          },
+          from: { name: 'Origen', lat: from.lat, lon: from.lng },
+          to: { name: 'Destino', lat: to.lat, lon: to.lng }
+        }
+      ]
+    };
+  } catch (error) {
+    console.error("Error al consultar backend local para transporte:", error);
+    return null;
+  }
+}
+
+/**
  * Calcula una ruta secuencial optimizada visitando múltiples destinos usando la API de Trufi (OpenTripPlanner GraphQL)
  */
 export const calculateTrufiRoute = async (
@@ -237,7 +286,19 @@ export const calculateTrufiRoute = async (
     const ptA = puntosRuta[i];
     const ptB = puntosRuta[i + 1];
 
-    let itinerary = await fetchSingleOTPRoute(ptA, ptB, modo, apiUrl);
+    let itinerary = null;
+    
+    if (modo === 'TRANSIT') {
+      // Intentar primero el backend local (nuestra base de datos de trufis de Cocha)
+      itinerary = await fetchLocalTransportRoute(ptA, ptB);
+      
+      // Si el local no encuentra nada (fuera de radio), intentar OTP como backup
+      if (!itinerary) {
+        itinerary = await fetchSingleOTPRoute(ptA, ptB, modo, apiUrl);
+      }
+    } else {
+      itinerary = await fetchSingleOTPRoute(ptA, ptB, modo, apiUrl);
+    }
 
     // Si falló el cálculo por red o falta de cobertura, crear un tramo fallback de caminata/vuelo directo
     if (!itinerary) {
@@ -276,6 +337,9 @@ export const calculateTrufiRoute = async (
 
       if (leg.legGeometry?.points) {
         legCoords = decodePolyline(leg.legGeometry.points);
+      } else if (leg.rawPoints) {
+        // Usar los puntos directos de nuestro backend local
+        legCoords = leg.rawPoints.map((p: any) => [p.lat, p.lng]);
       } else {
         // Fallback: línea recta si no hay polilínea
         legCoords = [
