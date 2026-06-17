@@ -16,13 +16,18 @@ const FormularioRestricciones = () => {
   } = useAppStore();
   const navigate = useNavigate();
 
-  const costoTotal = useMemo(() => 
-    museosSeleccionados.reduce((sum, m) => sum + m.precio, 0),
-  [museosSeleccionados]);
+  const costoTotal = useMemo(() => {
+    if (museosSeleccionados.length === 0) return 0;
+    // Suma precios + 3.00 Bs de transporte por cada museo visitado
+    return museosSeleccionados.reduce((sum, m) => sum + m.precio, 0) + (museosSeleccionados.length * 3);
+  }, [museosSeleccionados]);
 
-  const tiempoTotal = useMemo(() => 
-    museosSeleccionados.reduce((sum, m) => sum + m.tiempoEstimado, 0),
-  [museosSeleccionados]);
+  const tiempoTotal = useMemo(() => {
+    if (museosSeleccionados.length === 0) return 0;
+    // Estancia + ~15 min (0.25h) de traslado promedio entre puntos
+    const traslados = (museosSeleccionados.length * 0.25);
+    return Number((museosSeleccionados.reduce((sum, m) => sum + m.tiempoEstimado, 0) + traslados).toFixed(2));
+  }, [museosSeleccionados]);
 
   const getAIStatus = () => {
     if (presupuestoMax === 0) {
@@ -136,18 +141,37 @@ const FormularioRestricciones = () => {
       {/* Bottom Summary Bar */}
       <div className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-lg justify-between items-center bg-surface-container-high p-lg rounded-2xl border border-secondary/10 shadow-md">
         <div className="flex gap-lg w-full md:w-auto justify-around md:justify-start">
-          <div className="flex flex-col">
-            <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">TOTAL ESTIMADO</span>
-            <span className={clsx("font-display-lg text-2xl font-bold mt-1", costoTotal > presupuestoMax ? "text-error" : "text-primary")}>
-              Bs. {costoTotal}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">TIEMPO TOTAL</span>
-            <span className={clsx("font-display-lg text-2xl font-bold mt-1", tiempoTotal > tiempoDisponibleHoras ? "text-error" : "text-primary")}>
-              {tiempoTotal} hrs
-            </span>
-          </div>
+          {museosSeleccionados.length === 0 ? (
+            <>
+              <div className="flex flex-col">
+                <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">PRESUPUESTO OBJETIVO</span>
+                <span className="font-display-lg text-2xl font-bold mt-1 text-primary">
+                  Bs. {presupuestoMax}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">TIEMPO OBJETIVO</span>
+                <span className="font-display-lg text-2xl font-bold mt-1 text-primary">
+                  {tiempoDisponibleHoras} hrs
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col">
+                <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">TOTAL ESTIMADO</span>
+                <span className={clsx("font-display-lg text-2xl font-bold mt-1", costoTotal > presupuestoMax ? "text-error" : "text-primary")}>
+                  Bs. {costoTotal.toFixed(1)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-on-surface-variant font-label-md text-[10px] uppercase font-bold tracking-wider">TIEMPO TOTAL</span>
+                <span className={clsx("font-display-lg text-2xl font-bold mt-1", tiempoTotal > tiempoDisponibleHoras ? "text-error" : "text-primary")}>
+                  {tiempoTotal} hrs
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="w-full md:w-48 space-y-1">
@@ -167,27 +191,41 @@ const FormularioRestricciones = () => {
           </div>
         </div>
 
-        <button 
-          className="w-full md:w-auto px-xl py-md bg-primary hover:bg-primary-container text-on-primary-fixed rounded-xl font-bold flex items-center justify-center gap-base hover:shadow-lg active:scale-95 transition-all text-sm"
-          onClick={() => {
-            const { setModoPlanificacion, limpiarMuseos } = useAppStore.getState();
-            limpiarMuseos();
-            setModoPlanificacion(true);
-            
-            // Ensure a starting point exists before navigating to the map
-            if (!puntoPartida) {
-              setPuntoPartida({
-                lat: -17.3935,
-                lng: -66.1568,
-                direccion: 'Plaza Principal, Cochabamba',
-              });
-            }
-            navigate('/mapa');
-          }}
-        >
-          Ir al Mapa
-          <MdLocationOn className="text-sm" />
-        </button>
+        <div className="w-full flex flex-col md:flex-row gap-md">
+          <button 
+            className="flex-grow md:w-auto px-lg py-md bg-surface-container-highest text-on-surface rounded-xl font-bold flex items-center justify-center gap-base hover:bg-outline-variant/20 transition-all text-sm"
+            onClick={() => {
+              const { setPresupuesto, setTiempoDisponible, limpiarMuseos, setModoPlanificacion } = useAppStore.getState();
+              setPresupuesto(70);
+              setTiempoDisponible(4);
+              limpiarMuseos();
+              setModoPlanificacion(false);
+            }}
+          >
+            Reiniciar Todo
+          </button>
+          
+          <button 
+            className="flex-grow md:w-auto px-xl py-md bg-primary hover:bg-primary-container text-on-primary-fixed rounded-xl font-bold flex items-center justify-center gap-base hover:shadow-lg active:scale-95 transition-all text-sm"
+            onClick={() => {
+              const { setModoPlanificacion } = useAppStore.getState();
+              setModoPlanificacion(true);
+              
+              // Ensure a starting point exists before navigating to the map
+              if (!puntoPartida) {
+                setPuntoPartida({
+                  lat: -17.3935,
+                  lng: -66.1568,
+                  direccion: 'Plaza Principal, Cochabamba',
+                });
+              }
+              navigate('/mapa');
+            }}
+          >
+            Ir al Mapa
+            <MdLocationOn className="text-sm" />
+          </button>
+        </div>
 
       </div>
     </div>

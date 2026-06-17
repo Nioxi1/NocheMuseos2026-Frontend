@@ -41,6 +41,7 @@ export interface PasoRuta {
   origen: string;
   destino: string;
   lineaBus?: string; // Ej: "Trufi 106"
+  esVuelta?: boolean;
 }
 
 export interface AppState {

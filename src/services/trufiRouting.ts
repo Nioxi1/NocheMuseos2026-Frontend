@@ -268,10 +268,11 @@ export const calculateTrufiRoute = async (
   // Ordenar destinos usando Nearest Neighbor (TSP) respetando el primer destino si se seleccionó
   const destinosOrdenados = sortDestinations(origen, destinos, primerMuseoId);
 
-  // Crear la lista completa de puntos a visitar: Origen -> Museos en orden (sin retorno al origen)
+  // Crear la lista completa de puntos a visitar: Origen -> Museos en orden -> Retorno al origen
   const puntosRuta = [
     { ...origen, nombre: 'Inicio (Tu Ubicación)' },
-    ...destinosOrdenados
+    ...destinosOrdenados,
+    { ...origen, nombre: 'Retorno (Tu Ubicación)' }
   ];
 
   let totalDurationSeconds = 0;
@@ -404,19 +405,28 @@ export const calculateTrufiRoute = async (
         duracionMinutos: Math.round(leg.duration / 60) || 1,
         origen: leg.from.name || ptA.nombre || 'Inicio',
         destino: leg.to.name || ptB.nombre || 'Destino',
-        lineaBus: lineaBus
+        lineaBus: lineaBus,
+        esVuelta: (i === puntosRuta.length - 2)
       });
     });
 
-    // Añadir un paso intermedio representando la visita al museo en cada destino
-    pasos.push({
-      id: `visita-${i}-${Date.now()}`,
-      modo: 'Espera',
-      instruccion: `Visita cultural en: ${ptB.nombre}`,
-      duracionMinutos: 60, // 1 hora de visita estimada
-      origen: ptB.nombre || 'Museo',
-      destino: ptB.nombre || 'Museo'
-    });
+    // Añadir un paso intermedio representando la visita al museo (solo si NO es el retorno final)
+    if (i < puntosRuta.length - 2) {
+      pasos.push({
+        id: `visita-${i}-${Date.now()}`,
+        modo: 'Espera',
+        instruccion: `Visita cultural en: ${ptB.nombre}`,
+        duracionMinutos: 60, // 1 hora de visita estimada
+        origen: ptB.nombre || 'Museo',
+        destino: ptB.nombre || 'Museo'
+      });
+    } else {
+      // Es el tramo de regreso, actualizamos la instrucción final
+      const lastPaso = pasos[pasos.length - 1];
+      if (lastPaso) {
+        lastPaso.destino = 'Fin de la ruta (Tu Ubicación)';
+      }
+    }
   }
 
   // Estimar el costo total del trayecto en Bolivianos

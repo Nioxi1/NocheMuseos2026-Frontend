@@ -340,100 +340,129 @@ const TarjetaAlternativa = () => {
           const isLast = idx === transportPasos.length - 1;
 
           return (
-            <div key={idx} className="relative z-10">
-              {/* Origin point for first step */}
-              {isFirst && (
-                <div className="flex items-center gap-3 py-1.5">
-                  <div className="w-[30px] flex justify-center shrink-0">
-                    <MdMyLocation size={16} className="text-primary" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-on-surface">{paso.origen}</span>
+            <div key={idx} className="contents">
+              {paso.esVuelta && idx > 0 && !transportPasos[idx - 1].esVuelta && (
+                <div className="flex items-center gap-2 py-3 relative z-10">
+                  <div className="flex-grow h-px bg-outline-variant/30"></div>
+                  <span className="text-[9px] font-extrabold text-secondary uppercase bg-secondary/10 px-2 py-1 rounded-full border border-secondary/20 tracking-widest flex items-center gap-1.5 shrink-0">
+                    <MdSwapVert size={12} /> Fin de visitas • Iniciando Retorno
+                  </span>
+                  <div className="flex-grow h-px bg-outline-variant/30"></div>
                 </div>
               )}
 
-              {/* The step itself */}
-              <div
-                className={clsx(
-                  "flex items-stretch gap-3 rounded-lg transition-all",
-                  hoveredLeg === idx && "bg-surface-container-highest/80"
+              <div className="relative z-10">
+                {/* Origin point for first step */}
+                {isFirst && (
+                  <div className="flex items-center gap-3 py-1.5">
+                    <div className="w-[30px] flex justify-center shrink-0">
+                      <MdMyLocation size={16} className="text-primary" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-on-surface">{paso.origen}</span>
+                  </div>
                 )}
-                onMouseEnter={() => setHoveredLeg(idx)}
-                onMouseLeave={() => setHoveredLeg(null)}
-              >
-                {/* Left: colored bar/icon */}
-                <div className="w-[30px] flex flex-col items-center shrink-0">
-                  {isBus ? (
-                    <>
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm shrink-0"
-                        style={{ backgroundColor: lineColor }}
-                      >
-                        <MdDirectionsBus size={13} />
-                      </div>
-                      <div className="flex-grow w-1 rounded-full my-0.5" style={{ backgroundColor: lineColor, minHeight: '20px' }}></div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-400 text-white shadow-sm shrink-0">
-                        <MdDirectionsWalk size={13} />
-                      </div>
-                      <div className="flex-grow w-1 rounded-full my-0.5 bg-gray-300" style={{ minHeight: '20px', backgroundImage: 'repeating-linear-gradient(to bottom, #bdbdbd 0px, #bdbdbd 4px, transparent 4px, transparent 8px)' }}></div>
-                    </>
-                  )}
-                </div>
 
-                {/* Right: description */}
-                <div className="flex-grow py-1.5 pr-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      {isBus && (
-                        <span
-                          className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md shadow-sm"
+                {/* The step itself */}
+                <div
+                  className={clsx(
+                    "flex items-stretch gap-3 rounded-lg transition-all",
+                    hoveredLeg === idx && "bg-surface-container-highest/80"
+                  )}
+                  onMouseEnter={() => setHoveredLeg(idx)}
+                  onMouseLeave={() => setHoveredLeg(null)}
+                >
+                  {/* Left: colored bar/icon */}
+                  <div className="w-[30px] flex flex-col items-center shrink-0">
+                    {isBus ? (
+                      <>
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm shrink-0"
                           style={{ backgroundColor: lineColor }}
                         >
-                          {paso.lineaBus}
+                          <MdDirectionsBus size={13} />
+                        </div>
+                        <div className="flex-grow w-1 rounded-full my-0.5" style={{ backgroundColor: lineColor, minHeight: '20px' }}></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-400 text-white shadow-sm shrink-0">
+                          <MdDirectionsWalk size={13} />
+                        </div>
+                        <div className="flex-grow w-1 rounded-full my-0.5 bg-gray-300" style={{ minHeight: '20px', backgroundImage: 'repeating-linear-gradient(to bottom, #bdbdbd 0px, #bdbdbd 4px, transparent 4px, transparent 8px)' }}></div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Right: description */}
+                  <div className="flex-grow py-1.5 pr-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {isBus && (
+                          <span
+                            className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md shadow-sm"
+                            style={{ backgroundColor: lineColor }}
+                          >
+                            {paso.lineaBus}
+                          </span>
+                        )}
+                        <span className={clsx(
+                          "text-[11px] font-semibold",
+                          paso.esVuelta ? "text-secondary" : "text-on-surface"
+                        )}>
+                          {paso.esVuelta ? (
+                            <span className="flex items-center gap-1">
+                              <MdPlace size={12} className="text-secondary" /> Transporte de Retorno
+                            </span>
+                          ) : (
+                            isBus ? 'Transporte público' : 'Caminar'
+                          )}
                         </span>
-                      )}
-                      <span className="text-[11px] font-semibold text-on-surface">
-                        {isBus ? 'Transporte público' : 'Caminar'}
+                      </div>
+                      <span className={clsx(
+                        "text-[10px] font-mono px-1.5 py-0.5 rounded",
+                        paso.esVuelta ? "bg-secondary text-white shadow-sm" : "bg-surface-container-highest text-on-surface-variant"
+                      )}>
+                        {paso.duracionMinutos} min
                       </span>
                     </div>
-                    <span className="text-[10px] text-on-surface-variant font-mono bg-surface-container-highest px-1.5 py-0.5 rounded">
-                      {paso.duracionMinutos} min
+                    <p className="text-[10px] text-on-surface-variant mt-0.5 leading-snug">
+                      {paso.instruccion}
+                    </p>
+                    {isBus && (
+                      <div className="flex items-center gap-1 mt-1 text-[9px] text-on-surface-variant">
+                        <MdPayments size={11} className="text-secondary" />
+                        <span className="font-semibold">Bs. 3.00</span>
+                        <span className="text-outline">por pasaje</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Transfer indicator between bus legs */}
+                {idx < transportPasos.length - 1 && isBus && transportPasos[idx + 1].modo === 'Bus' && (
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="w-[30px] flex justify-center shrink-0">
+                      <MdTransferWithinAStation size={14} className="text-secondary" />
+                    </div>
+                    <span className="text-[9px] font-bold text-secondary uppercase tracking-wider">Transbordo</span>
+                  </div>
+                )}
+
+                {/* Destination point for last step */}
+                {isLast && (
+                  <div className="flex items-center gap-3 py-1.5">
+                    <div className="w-[30px] flex justify-center shrink-0">
+                      <MdPlace size={16} className={paso.esVuelta ? "text-secondary" : "text-error"} />
+                    </div>
+                    <span className={clsx(
+                      "text-[11px] font-bold",
+                      paso.esVuelta ? "text-secondary" : "text-on-surface"
+                    )}>
+                      {paso.destino}
                     </span>
                   </div>
-                  <p className="text-[10px] text-on-surface-variant mt-0.5 leading-snug">
-                    {paso.instruccion}
-                  </p>
-                  {isBus && (
-                    <div className="flex items-center gap-1 mt-1 text-[9px] text-on-surface-variant">
-                      <MdPayments size={11} className="text-secondary" />
-                      <span className="font-semibold">Bs. 3.00</span>
-                      <span className="text-outline">por pasaje</span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-
-              {/* Transfer indicator between bus legs */}
-              {idx < transportPasos.length - 1 && isBus && transportPasos[idx + 1].modo === 'Bus' && (
-                <div className="flex items-center gap-3 py-1">
-                  <div className="w-[30px] flex justify-center shrink-0">
-                    <MdTransferWithinAStation size={14} className="text-secondary" />
-                  </div>
-                  <span className="text-[9px] font-bold text-secondary uppercase tracking-wider">Transbordo</span>
-                </div>
-              )}
-
-              {/* Destination point for last step */}
-              {isLast && (
-                <div className="flex items-center gap-3 py-1.5">
-                  <div className="w-[30px] flex justify-center shrink-0">
-                    <MdPlace size={16} className="text-error" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-on-surface">{paso.destino}</span>
-                </div>
-              )}
             </div>
           );
         })}
@@ -519,7 +548,7 @@ const TarjetaAlternativa = () => {
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin"></div>
                 <MdDirectionsBus size={24} className="absolute inset-0 m-auto text-primary" />
               </div>
-              <p className="text-sm font-semibold text-on-surface">Calculando rutas...</p>
+              <p className="text-sm font-semibold text-on-surface">Generando rutas...</p>
               <p className="text-[11px] text-on-surface-variant mt-1">Consultando Trufi App para líneas de transporte</p>
             </div>
           ) : !mapSelection ? (

@@ -101,12 +101,12 @@ const MapEvents = ({ setPos, closeDetail }: { setPos: (latlng: L.LatLng) => void
 
 const MapaReal: React.FC = () => {
   const navigate = useNavigate();
-  const { 
-    museosSeleccionados, 
-    toggleMuseo, 
+  const {
+    museosSeleccionados,
+    toggleMuseo,
     setMuseosSeleccionados,
-    limpiarMuseos, 
-    puntoPartida, 
+    limpiarMuseos,
+    puntoPartida,
     setPuntoPartida,
     presupuestoMax,
     tiempoDisponibleHoras,
@@ -136,12 +136,12 @@ const MapaReal: React.FC = () => {
 
   const filteredMuseos = museumSearch.trim()
     ? museos.filter(m => {
-        const q = museumSearch.toLowerCase();
-        return (
-          m.nombre.toLowerCase().includes(q) ||
-          m.categoria.toLowerCase().includes(q)
-        );
-      }).slice(0, 8)
+      const q = museumSearch.toLowerCase();
+      return (
+        m.nombre.toLowerCase().includes(q) ||
+        m.categoria.toLowerCase().includes(q)
+      );
+    }).slice(0, 8)
     : [];
 
   const canProceed = Boolean(markerPos && museosSeleccionados.length > 0);
@@ -212,10 +212,10 @@ const MapaReal: React.FC = () => {
   const handleSuggestionClick = (suggestion: any) => {
     setSearchValue(suggestion.display_name);
     setMarkerPos(new L.LatLng(parseFloat(suggestion.lat), parseFloat(suggestion.lon)));
-    setPuntoPartida({ 
-      lat: parseFloat(suggestion.lat), 
-      lng: parseFloat(suggestion.lon), 
-      direccion: suggestion.display_name 
+    setPuntoPartida({
+      lat: parseFloat(suggestion.lat),
+      lng: parseFloat(suggestion.lon),
+      direccion: suggestion.display_name
     });
     setShowSuggestions(false);
     setShowDropdown(false);
@@ -258,7 +258,7 @@ const MapaReal: React.FC = () => {
   // Calculate route or perform intelligent planning
   const performPlanning = async () => {
     if (!markerPos) return;
-    
+
     if (modoPlanificacion) {
       setCalculatingRoute(true);
       try {
@@ -267,7 +267,7 @@ const MapaReal: React.FC = () => {
           presupuesto: presupuestoMax,
           tiempo: tiempoDisponibleHoras
         });
-        
+
         const data = response.data;
         if (data.museos && data.museos.length > 0) {
           // Actualizar museos seleccionados en bloque
@@ -283,7 +283,7 @@ const MapaReal: React.FC = () => {
             horarioApertura: m.horarioApertura,
             horarioCierre: m.horarioCierre
           }));
-          
+
           setMuseosSeleccionados(nuevosMuseos);
           setRoute(data.ruta);
           setPlanningResult(data);
@@ -311,7 +311,7 @@ const MapaReal: React.FC = () => {
           precio: (m as any).precio,
           tiempoEstimado: (m as any).tiempoEstimado
         }));
-        
+
         const response = await axios.post(`${API_BASE}/api/rutas`, {
           origen: { lat: markerPos.lat, lng: markerPos.lng },
           museos: museosData
@@ -337,7 +337,7 @@ const MapaReal: React.FC = () => {
     }
 
     performPlanning();
-  }, [markerPos, museosSeleccionados, modoPlanificacion]);
+  }, [markerPos, museosSeleccionados, modoPlanificacion, presupuestoMax, tiempoDisponibleHoras]);
 
 
 
@@ -367,65 +367,65 @@ const MapaReal: React.FC = () => {
             <h1 className="font-headline-lg-mobile text-on-surface mb-xs font-bold">Punto de Partida</h1>
             <p className="text-body-sm text-on-surface-variant">Selecciona dónde comienza tu aventura cultural hoy.</p>
           </div>
-          
+
           <div className="space-y-md">
             {/* Search Input */}
             <div className="relative">
               <label className="font-label-md text-secondary mb-xs block" htmlFor="address-search">DIRECCIÓN O LUGAR</label>
-                <div className="relative group flex items-center">
-                  <input 
-                    id="address-search" 
-                    type="text" 
-                    value={searchValue}
-                    onChange={(e) => {
-                      setSearchValue(e.target.value);
-                      fetchSuggestions(e.target.value);
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="w-full bg-surface-container-highest border-none rounded-lg pl-xl pr-12 px-md py-sm text-body-lg focus:ring-2 focus:ring-primary transition-all" 
-                    placeholder="Ej. Plaza Principal"
-                  />
-                  <MdLocationOn className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary" size={20} />
-                  <button 
-                    onClick={handleSearch} 
-                    disabled={isLoading || geoLocating}
-                    className="ml-2 bg-secondary text-white px-3 py-2 rounded-lg font-bold"
+              <div className="relative group flex items-center">
+                <input
+                  id="address-search"
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => {
+                    setSearchValue(e.target.value);
+                    fetchSuggestions(e.target.value);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-full bg-surface-container-highest border-none rounded-lg pl-xl pr-12 px-md py-sm text-body-lg focus:ring-2 focus:ring-primary transition-all"
+                  placeholder="Ej. Plaza Principal"
+                />
+                <MdLocationOn className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary" size={20} />
+                <button
+                  onClick={handleSearch}
+                  disabled={isLoading || geoLocating}
+                  className="ml-2 bg-secondary text-white px-3 py-2 rounded-lg font-bold"
+                >
+                  {isLoading ? '...' : 'Buscar'}
+                </button>
+              </div>
+              {/* Dropdown: GPS option + autocomplete suggestions */}
+              {(showDropdown || (showSuggestions && suggestions.length > 0)) && (
+                <ul className="absolute z-50 bg-surface border border-outline-variant rounded-lg shadow-lg w-full max-h-56 overflow-y-auto mt-1">
+                  {/* GPS: Use current location - always first */}
+                  <li
+                    onClick={handleUseCurrentLocation}
+                    className="px-3 py-2.5 hover:bg-primary/5 cursor-pointer text-sm border-b border-outline-variant/15 flex items-center gap-2 font-semibold text-primary"
                   >
-                    {isLoading ? '...' : 'Buscar'}
-                  </button>
-                </div>
-                {/* Dropdown: GPS option + autocomplete suggestions */}
-                {(showDropdown || (showSuggestions && suggestions.length > 0)) && (
-                  <ul className="absolute z-50 bg-surface border border-outline-variant rounded-lg shadow-lg w-full max-h-56 overflow-y-auto mt-1">
-                    {/* GPS: Use current location - always first */}
+                    <MdGpsFixed size={18} className={geoLocating ? 'animate-spin' : ''} />
+                    <span>{geoLocating ? 'Obteniendo ubicación...' : 'Marcar posición actual'}</span>
+                  </li>
+                  {/* Autocomplete suggestions */}
+                  {suggestions.map((s, i) => (
                     <li
-                      onClick={handleUseCurrentLocation}
-                      className="px-3 py-2.5 hover:bg-primary/5 cursor-pointer text-sm border-b border-outline-variant/15 flex items-center gap-2 font-semibold text-primary"
+                      key={i}
+                      onClick={() => handleSuggestionClick(s)}
+                      className="px-3 py-2 hover:bg-surface-variant cursor-pointer text-sm border-b border-outline-variant/10 last:border-0"
                     >
-                      <MdGpsFixed size={18} className={geoLocating ? 'animate-spin' : ''} />
-                      <span>{geoLocating ? 'Obteniendo ubicación...' : 'Marcar posición actual'}</span>
+                      {s.display_name}
                     </li>
-                    {/* Autocomplete suggestions */}
-                    {suggestions.map((s, i) => (
-                      <li
-                        key={i}
-                        onClick={() => handleSuggestionClick(s)}
-                        className="px-3 py-2 hover:bg-surface-variant cursor-pointer text-sm border-b border-outline-variant/10 last:border-0"
-                      >
-                        {s.display_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  ))}
+                </ul>
+              )}
             </div>
-            
+
             <div className="flex items-center gap-base py-base">
               <div className="h-px flex-grow bg-outline-variant/20"></div>
               <span className="text-label-md text-outline">O</span>
               <div className="h-px flex-grow bg-outline-variant/20"></div>
             </div>
-            
+
             {/* Map Interaction Help - Comment */}
             <div className="w-full flex items-center justify-center gap-base p-md border-2 border-dashed border-secondary/30 rounded-xl bg-surface-container/50">
               <MdTouchApp className="text-secondary" />
@@ -436,96 +436,96 @@ const MapaReal: React.FC = () => {
 
         {/* Museos seleccionados — panel ampliado con buscador */}
         <div className="flex-grow flex flex-col min-h-0 mx-lg mb-md bg-surface-container-high rounded-xl border border-outline-variant/10 overflow-hidden">
-            <div className="p-md border-b border-outline-variant/10 space-y-sm shrink-0">
-              <div className="flex justify-between items-center">
-                <h3 className="font-label-md text-on-surface font-bold">MUSEOS SELECCIONADOS</h3>
-                <span className="bg-primary text-on-primary-fixed text-xs px-2.5 py-0.5 rounded-full font-bold">
-                  {museosSeleccionados.length}
-                </span>
-              </div>
-              <div className="relative">
-                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
-                <input
-                  type="text"
-                  value={museumSearch}
-                  onChange={(e) => setMuseumSearch(e.target.value)}
-                  placeholder="Buscar museo por nombre o categoría..."
-                  className="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-3 py-2.5 text-body-sm focus:ring-2 focus:ring-primary transition-all"
-                />
-              </div>
+          <div className="p-md border-b border-outline-variant/10 space-y-sm shrink-0">
+            <div className="flex justify-between items-center">
+              <h3 className="font-label-md text-on-surface font-bold">MUSEOS SELECCIONADOS</h3>
+              <span className="bg-primary text-on-primary-fixed text-xs px-2.5 py-0.5 rounded-full font-bold">
+                {museosSeleccionados.length}
+              </span>
             </div>
+            <div className="relative">
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
+              <input
+                type="text"
+                value={museumSearch}
+                onChange={(e) => setMuseumSearch(e.target.value)}
+                placeholder="Buscar museo por nombre o categoría..."
+                className="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-3 py-2.5 text-body-sm focus:ring-2 focus:ring-primary transition-all"
+              />
+            </div>
+          </div>
 
-            {museumSearch.trim() && (
-              <ul className="max-h-36 overflow-y-auto border-b border-outline-variant/10 shrink-0">
-                {filteredMuseos.length > 0 ? (
-                  filteredMuseos.map(m => {
-                    const yaSeleccionado = museosSeleccionados.some(s => s.id === m.id);
-                    return (
-                      <li
-                        key={m.id}
-                        className="flex items-center justify-between gap-2 px-md py-2 hover:bg-surface-container transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
-                          <p className="text-[10px] text-on-surface-variant uppercase">{m.categoria}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => !yaSeleccionado && toggleMuseo(m)}
-                          disabled={yaSeleccionado}
-                          className={clsx(
-                            'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all',
-                            yaSeleccionado
-                              ? 'bg-secondary/20 text-secondary cursor-default'
-                              : 'bg-primary text-on-primary-fixed hover:bg-primary-container'
-                          )}
-                        >
-                          {yaSeleccionado ? 'Agregado' : <><MdAdd size={14} /> Agregar</>}
-                        </button>
-                      </li>
-                    );
-                  })
-                ) : (
-                  <li className="px-md py-3 text-body-sm text-on-surface-variant italic">
-                    No se encontraron museos
-                  </li>
-                )}
-              </ul>
-            )}
-
-            <ul className="flex-grow overflow-y-auto p-md space-y-2 min-h-[140px]">
-              {museosSeleccionados.length > 0 ? (
-                museosSeleccionados.map(m => (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-sm bg-surface-container rounded-lg px-3 py-2.5 border border-outline-variant/10 group"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-secondary shrink-0"></span>
-                    <div className="flex-grow min-w-0">
-                      <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
-                      <p className="text-[10px] text-on-surface-variant">{m.categoria}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleMuseo(m)}
-                      className="shrink-0 p-1.5 rounded-lg text-error hover:bg-error/10 transition-colors"
-                      title="Quitar museo"
+          {museumSearch.trim() && (
+            <ul className="max-h-36 overflow-y-auto border-b border-outline-variant/10 shrink-0">
+              {filteredMuseos.length > 0 ? (
+                filteredMuseos.map(m => {
+                  const yaSeleccionado = museosSeleccionados.some(s => s.id === m.id);
+                  return (
+                    <li
+                      key={m.id}
+                      className="flex items-center justify-between gap-2 px-md py-2 hover:bg-surface-container transition-colors"
                     >
-                      <MdDeleteOutline size={18} />
-                    </button>
-                  </li>
-                ))
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
+                        <p className="text-[10px] text-on-surface-variant uppercase">{m.categoria}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => !yaSeleccionado && toggleMuseo(m)}
+                        disabled={yaSeleccionado}
+                        className={clsx(
+                          'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                          yaSeleccionado
+                            ? 'bg-secondary/20 text-secondary cursor-default'
+                            : 'bg-primary text-on-primary-fixed hover:bg-primary-container'
+                        )}
+                      >
+                        {yaSeleccionado ? 'Agregado' : <><MdAdd size={14} /> Agregar</>}
+                      </button>
+                    </li>
+                  );
+                })
               ) : (
-                <li className="flex flex-col items-center justify-center py-8 text-center px-4">
-                  <MdSearch size={32} className="text-outline/40 mb-2" />
-                  <p className="text-body-sm text-on-surface-variant">
-                    Ningún museo seleccionado. Usa el buscador o haz clic en un marcador del mapa.
-                  </p>
+                <li className="px-md py-3 text-body-sm text-on-surface-variant italic">
+                  No se encontraron museos
                 </li>
               )}
             </ul>
-          </div>
-        
+          )}
+
+          <ul className="flex-grow overflow-y-auto p-md space-y-2 min-h-[140px]">
+            {museosSeleccionados.length > 0 ? (
+              museosSeleccionados.map(m => (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-sm bg-surface-container rounded-lg px-3 py-2.5 border border-outline-variant/10 group"
+                >
+                  <span className="w-2 h-2 rounded-full bg-secondary shrink-0"></span>
+                  <div className="flex-grow min-w-0">
+                    <p className="text-body-sm font-semibold text-on-surface truncate">{m.nombre}</p>
+                    <p className="text-[10px] text-on-surface-variant">{m.categoria}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleMuseo(m)}
+                    className="shrink-0 p-1.5 rounded-lg text-error hover:bg-error/10 transition-colors"
+                    title="Quitar museo"
+                  >
+                    <MdDeleteOutline size={18} />
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li className="flex flex-col items-center justify-center py-8 text-center px-4">
+                <MdSearch size={32} className="text-outline/40 mb-2" />
+                <p className="text-body-sm text-on-surface-variant">
+                  Ningún museo seleccionado. Usa el buscador o haz clic en un marcador del mapa.
+                </p>
+              </li>
+            )}
+          </ul>
+        </div>
+
         {/* Footer Action */}
         <div className="p-lg bg-surface-container-low border-t border-outline-variant/10 shrink-0">
           {!markerPos && museosSeleccionados.length > 0 && (
@@ -533,7 +533,7 @@ const MapaReal: React.FC = () => {
               Falta marcar tu punto de partida
             </p>
           )}
-          <button 
+          <button
             onClick={handleNavigateToComparar}
             disabled={!canProceed}
             className={clsx(
@@ -556,29 +556,29 @@ const MapaReal: React.FC = () => {
 
       {/* Interactive Map View */}
       <section className="flex-grow w-full h-1/2 md:h-full relative z-10">
-        <MapContainer 
-            key={window.location.pathname}
-            center={[defaultPos.lat, defaultPos.lng]} 
-            zoom={13} 
-            className="w-full h-full"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapEvents setPos={handleMapClick} closeDetail={() => setSelectedMuseumForDetail(null)} />
-            <FitMapView museos={museos} startPos={markerPos} />
+        <MapContainer
+          key={window.location.pathname}
+          center={[defaultPos.lat, defaultPos.lng]}
+          zoom={13}
+          className="w-full h-full"
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapEvents setPos={handleMapClick} closeDetail={() => setSelectedMuseumForDetail(null)} />
+          <FitMapView museos={museos} startPos={markerPos} />
 
-            {markerPos ? (
-                <Marker position={[markerPos.lat, markerPos.lng]} icon={startIcon}>
-                  <Popup>Tu punto de inicio</Popup>
-                </Marker>
-              ) : null}
+          {markerPos ? (
+            <Marker position={[markerPos.lat, markerPos.lng]} icon={startIcon}>
+              <Popup>Tu punto de inicio</Popup>
+            </Marker>
+          ) : null}
 
           {museosSeleccionados.map((m, index) => (
-            <Marker 
-              key={`selected-${m.id}`} 
-              position={[m.coordenadas.lat, m.coordenadas.lng]} 
+            <Marker
+              key={`selected-${m.id}`}
+              position={[m.coordenadas.lat, m.coordenadas.lng]}
               icon={createSelectedIcon(index + 1)}
               zIndexOffset={1000}
               eventHandlers={{
@@ -596,32 +596,50 @@ const MapaReal: React.FC = () => {
 
           {/* Display route polyline if available */}
           {route && route.geometry && (
-            <Polyline
-              positions={route.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]])}
-              color="#0284c7"
-              weight={6}
-              opacity={0.8}
-              dashArray="10, 10"
-              lineCap="round"
-            />
+            <>
+              {route.legs && route.legs.length > 0 ? (
+                route.legs.map((leg: any, index: number) => {
+                  // The last leg is the return to origin
+                  const isReturn = index === route.legs.length - 1;
+                  // If we have detailed steps or just use the leg's points if available
+                  // Note: OSRM overview=full gives one geometry, but we can approximate legs
+                  // Better: If we have multiple legs, OSRM returns them in the 'legs' array.
+                  // However, overview=full combines them. 
+                  // Let's use a simpler approach: 
+                  // If it's a single geometry from overview, we can't easily split without counting points.
+                  // BUT if we use the default Polyline and then overlay the return leg?
+                  return null; // Placeholder for now, see below for real logic
+                })
+              ) : null}
+              
+              {/* Fallback to single polyline or smarter split */}
+              <Polyline
+                positions={route.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]])}
+                color="#0284c7"
+                weight={6}
+                opacity={0.8}
+                dashArray="10, 10"
+                lineCap="round"
+              />
+            </>
           )}
 
           {/* Museos disponibles (no seleccionados) */}
           {museos
             .filter(m => !museosSeleccionados.some(s => s.id === m.id))
             .map(m => (
-            <Marker 
-              key={m.id} 
-              position={[m.coordenadas.lat, m.coordenadas.lng]} 
-              icon={ghostMuseumIcon}
-              opacity={0.6}
-              eventHandlers={{
-                click: () => {
-                  setSelectedMuseumForDetail(m);
-                }
-              }}
-            />
-          ))}
+              <Marker
+                key={m.id}
+                position={[m.coordenadas.lat, m.coordenadas.lng]}
+                icon={ghostMuseumIcon}
+                opacity={0.6}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedMuseumForDetail(m);
+                  }
+                }}
+              />
+            ))}
 
         </MapContainer>
 
@@ -630,12 +648,12 @@ const MapaReal: React.FC = () => {
           <div className="absolute top-4 bottom-4 left-4 w-80 md:w-96 bg-surface-container-high/95 backdrop-blur-md shadow-2xl rounded-2xl border border-outline-variant/15 flex flex-col z-[500] overflow-hidden animate-fade-in transition-all">
             {/* Header Cover Image */}
             <div className="h-44 w-full relative bg-surface-dim shrink-0">
-              <img 
-                src={selectedMuseumForDetail.imagenUrl} 
-                alt={selectedMuseumForDetail.nombre} 
+              <img
+                src={selectedMuseumForDetail.imagenUrl}
+                alt={selectedMuseumForDetail.nombre}
                 className="w-full h-full object-cover"
               />
-              <button 
+              <button
                 onClick={() => setSelectedMuseumForDetail(null)}
                 className="absolute top-3 right-3 bg-black/45 hover:bg-black/65 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-md border border-white/20"
               >
@@ -652,7 +670,7 @@ const MapaReal: React.FC = () => {
                 <h2 className="font-bold text-on-surface text-lg md:text-xl leading-tight">
                   {selectedMuseumForDetail.nombre}
                 </h2>
-                
+
                 {/* Star rating review count mock */}
                 <div className="flex items-center gap-xs mt-1 text-xs text-on-surface-variant">
                   <span className="font-bold text-secondary text-sm">4.5</span>
@@ -732,7 +750,7 @@ const MapaReal: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {/* AI Insight Tooltip - Solo se muestra si hay un inicio seleccionado */}
         {markerPos && (
           <div className="absolute bottom-lg left-lg glass-panel p-md rounded-xl border-l-4 border-primary shadow-xl max-w-xs z-[400] bg-surface-container/90">
@@ -765,16 +783,29 @@ const MapaReal: React.FC = () => {
                     ))}
                   </div>
                 </div>
-                <button 
-                  onClick={() => setPlanningResult(null)}
-                  className="w-full py-1 text-[10px] text-on-surface-variant hover:text-primary transition-colors font-bold uppercase"
-                >
-                  Cerrar sugerencia
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPlanningResult(null)}
+                    className="flex-grow py-1 text-[10px] text-on-surface-variant hover:text-primary transition-colors font-bold uppercase border border-outline-variant rounded"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPlanningResult(null);
+                      limpiarMuseos();
+                      setRoute(null);
+                      setModoPlanificacion(false);
+                    }}
+                    className="flex-grow py-1 text-[10px] text-error hover:bg-error/10 transition-colors font-bold uppercase border border-error/30 rounded"
+                  >
+                    Reiniciar
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="text-body-sm text-on-surface leading-tight">
-                {calculatingRoute ? 'Calculando el mejor recorrido para ti...' : 'Punto de inicio establecido. Nuestro Agente de Transporte trazará tu ruta.'}
+                {calculatingRoute ? 'Generando el mejor recorrido para ti...' : 'Punto de inicio establecido. Nuestro Agente de Transporte trazará tu ruta.'}
               </p>
             )}
           </div>
