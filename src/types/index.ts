@@ -10,6 +10,7 @@ export interface Museo {
   };
   imagenUrl: string;
   descripcion?: string;
+  actividades?: string;
   afluenciaActual?: 'Baja' | 'Media' | 'Alta';
   horarioApertura?: string;
   horarioCierre?: string;

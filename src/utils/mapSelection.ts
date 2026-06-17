@@ -10,6 +10,7 @@ export interface MapSelectionMuseo {
   categoria?: string;
   imagenUrl?: string;
   descripcion?: string;
+  actividades?: string;
 }
 
 export interface MapSelection {
@@ -28,6 +29,7 @@ export function museoToMapItem(m: Museo): MapSelectionMuseo {
     categoria: m.categoria,
     imagenUrl: m.imagenUrl,
     descripcion: m.descripcion,
+    actividades: m.actividades,
   };
 }
 

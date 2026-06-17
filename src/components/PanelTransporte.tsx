@@ -141,6 +141,73 @@ const PanelTransporte = () => {
     setUserPosition(pos);
   }, []);
 
+  const speak = (text: string) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+
+      // Búsqueda exhaustiva de voz en español
+      const findSpanishVoice = () => {
+        // 1. Prioridad: Español latino o de España específico
+        const preferred = ['es-ES'];
+        for (const lang of preferred) {
+          const v = voices.find(v => v.lang === lang);
+          if (v) return v;
+        }
+        // 2. Cualquier idioma que empiece con "es"
+        const anyEs = voices.find(v => v.lang.toLowerCase().startsWith('es'));
+        if (anyEs) return anyEs;
+        // 3. Cualquier nombre que tenga "spanish" o "español"
+        const byName = voices.find(v =>
+          v.name.toLowerCase().includes('spanish') ||
+          v.name.toLowerCase().includes('español') ||
+          v.name.toLowerCase().includes('mexico') ||
+          v.name.toLowerCase().includes('spain')
+        );
+        if (byName) return byName;
+        return null;
+      };
+
+      const spanishVoice = findSpanishVoice();
+
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+        utterance.lang = spanishVoice.lang;
+      } else {
+        utterance.lang = 'es-ES';
+      }
+
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      window.speechSynthesis.speak(utterance);
+    }, 200);
+  };
+
+  const handleMuseumClick = (museo: any, index: number) => {
+    if (!tracking) return;
+
+    let message = `Estamos en ${museo.nombre}. `;
+    if (museo.actividades) {
+      message += `${museo.actividades} `;
+    } else {
+      message += `En este museo podrás descubrir valiosas colecciones históricas y culturales de nuestra ciudad. `;
+    }
+
+    const nextMuseum = museos[index + 1];
+    if (nextMuseum) {
+      message += `Nuestra siguiente parada cultural será el ${nextMuseum.nombre}.`;
+    } else {
+      message += `Este es el último museo de nuestro recorrido. ¡Espero que hayas disfrutado la visita!`;
+    }
+
+    speak(message);
+  };
+
   const handleStartTracking = () => {
     if (!navigator.geolocation) {
       alert('Tu navegador no soporta geolocalización.');
@@ -151,6 +218,7 @@ const PanelTransporte = () => {
 
   const handleStopTracking = () => {
     setTracking(false);
+    window.speechSynthesis.cancel();
   };
 
   // Auto-scroll to active step
@@ -441,10 +509,22 @@ const PanelTransporte = () => {
 
           {/* Museum markers */}
           {museos.map((m: any, mIdx: number) => (
-            <Marker key={m.id || mIdx} position={[m.lat, m.lng]} icon={museumIcon}>
+            <Marker
+              key={m.id || mIdx}
+              position={[m.lat, m.lng]}
+              icon={museumIcon}
+              eventHandlers={{
+                click: () => handleMuseumClick(m, mIdx)
+              }}
+            >
               <Popup>
                 <div className="font-bold text-sm">{m.nombre}</div>
                 <div className="text-xs text-gray-500">Museo #{mIdx + 1}</div>
+                {tracking && (
+                  <div className="mt-2 text-[10px] text-primary font-bold animate-pulse">
+                    🔊 Escuchando guía...
+                  </div>
+                )}
               </Popup>
             </Marker>
           ))}
@@ -591,7 +671,7 @@ const PanelTransporte = () => {
           <div className="absolute top-4 left-4 z-[400]">
             <button
               className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-all border border-gray-200"
-              onClick={() => {/* map will auto-center via LocationTracker */}}
+              onClick={() => {/* map will auto-center via LocationTracker */ }}
               title="Centrar en mi ubicación"
             >
               <MdGpsFixed size={20} />
