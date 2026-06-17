@@ -5,7 +5,8 @@ import { useAppStore } from '../store/appState';
 import { useMuseos } from '../hooks/useMuseos';
 import type { Museo } from '../types';
 import clsx from 'clsx';
-import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf, MdGpsFixed, MdSearch, MdAdd, MdDeleteOutline } from 'react-icons/md';
+import { MdLocationOn, MdTouchApp, MdAutoFixHigh, MdClose, MdSchedule, MdPayments, MdHourglassEmpty, MdStar, MdStarBorder, MdStarHalf, MdGpsFixed, MdSearch, MdAdd, MdDeleteOutline, MdAutoAwesome } from 'react-icons/md';
+
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { buildMapSelection, saveMapSelection } from '../utils/mapSelection';
@@ -37,6 +38,30 @@ const museumIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const ghostMuseumIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [20, 32],
+  iconAnchor: [10, 32],
+  popupAnchor: [1, -26],
+  shadowSize: [32, 32]
+});
+
+// Icon with number for selected museums
+const createSelectedIcon = (number: number) => {
+  return L.divIcon({
+    html: `<div class="relative flex items-center justify-center">
+            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" class="w-[25px] h-[41px]" />
+            <span class="absolute top-[8px] text-white font-bold text-[12px]">${number}</span>
+           </div>`,
+    className: '',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
+  });
+};
+
+
 const FitMapView = ({
   museos,
   startPos,
@@ -47,16 +72,18 @@ const FitMapView = ({
   const map = useMap();
 
   useEffect(() => {
-    if (startPos) {
-      map.setView([startPos.lat, startPos.lng], 14);
-      return;
+    const points: L.LatLngExpression[] = [];
+    if (startPos) points.push([startPos.lat, startPos.lng]);
+    if (museos.length > 0) {
+      museos.forEach(m => points.push([m.coordenadas.lat, m.coordenadas.lng]));
     }
-    if (museos.length === 0) return;
-    const bounds = L.latLngBounds(
-      museos.map(m => [m.coordenadas.lat, m.coordenadas.lng] as [number, number])
-    );
-    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+
+    if (points.length > 0) {
+      const bounds = L.latLngBounds(points);
+      map.fitBounds(bounds, { padding: [100, 100], maxZoom: 15 });
+    }
   }, [map, museos, startPos]);
+
 
   return null;
 };
@@ -74,7 +101,19 @@ const MapEvents = ({ setPos, closeDetail }: { setPos: (latlng: L.LatLng) => void
 
 const MapaReal: React.FC = () => {
   const navigate = useNavigate();
-  const { museosSeleccionados, toggleMuseo, limpiarMuseos, puntoPartida, setPuntoPartida } = useAppStore();
+  const { 
+    museosSeleccionados, 
+    toggleMuseo, 
+    setMuseosSeleccionados,
+    limpiarMuseos, 
+    puntoPartida, 
+    setPuntoPartida,
+    presupuestoMax,
+    tiempoDisponibleHoras,
+    modoPlanificacion,
+    setModoPlanificacion
+  } = useAppStore();
+
   const { museos } = useMuseos();
   const [searchValue, setSearchValue] = useState('');
   const [museumSearch, setMuseumSearch] = useState('');
@@ -87,6 +126,8 @@ const MapaReal: React.FC = () => {
   const [route, setRoute] = useState<any>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
   const [selectedMuseumForDetail, setSelectedMuseumForDetail] = useState<any | null>(null);
+  const [planningResult, setPlanningResult] = useState<any | null>(null);
+
 
   // Reiniciar selección al entrar al mapa
   useEffect(() => {
@@ -214,42 +255,92 @@ const MapaReal: React.FC = () => {
     setShowSuggestions(false);
   };
 
-  // Calculate route when start point or selected museums change
-  const calculateRoute = async () => {
-    if (!markerPos || museosSeleccionados.length === 0) return;
+  // Calculate route or perform intelligent planning
+  const performPlanning = async () => {
+    if (!markerPos) return;
     
-    setCalculatingRoute(true);
-    try {
-      const museosData = museosSeleccionados.map(m => ({
-        id: m.id,
-        nombre: m.nombre,
-        lat: (m as any).coordenadas.lat,
-        lng: (m as any).coordenadas.lng,
-        precio: (m as any).precio,
-        tiempoEstimado: (m as any).tiempoEstimado
-      }));
-      
-      console.log('Sending to /api/rutas:', {
-        origen: { lat: markerPos.lat, lng: markerPos.lng },
-        museos: museosData
-      });
-      
-      const response = await axios.post(`${API_BASE}/api/rutas`, {
-        origen: { lat: markerPos.lat, lng: markerPos.lng },
-        museos: museosData
-      });
-      setRoute(response.data);
-    } catch (error) {
-      console.error("Error calculating route", error);
-    } finally {
-      setCalculatingRoute(false);
+    if (modoPlanificacion) {
+      setCalculatingRoute(true);
+      try {
+        const response = await axios.post(`${API_BASE}/api/planificar`, {
+          origen: { lat: markerPos.lat, lng: markerPos.lng },
+          presupuesto: presupuestoMax,
+          tiempo: tiempoDisponibleHoras
+        });
+        
+        const data = response.data;
+        if (data.museos && data.museos.length > 0) {
+          // Actualizar museos seleccionados en bloque
+          const nuevosMuseos = data.museos.map((m: any) => ({
+            id: m.id,
+            nombre: m.nombre,
+            categoria: m.categoria,
+            precio: m.precio,
+            tiempoEstimado: m.tiempoEstimado,
+            coordenadas: { lat: m.lat, lng: m.lng },
+            imagenUrl: m.imagenUrl,
+            descripcion: m.descripcion,
+            horarioApertura: m.horarioApertura,
+            horarioCierre: m.horarioCierre
+          }));
+          
+          setMuseosSeleccionados(nuevosMuseos);
+          setRoute(data.ruta);
+          setPlanningResult(data);
+        } else {
+          alert('No se encontraron museos que se ajusten a tus restricciones.');
+          setPlanningResult(null);
+        }
+
+      } catch (error) {
+        console.error("Error in auto-planning", error);
+      } finally {
+        setCalculatingRoute(false);
+        setModoPlanificacion(false); // Reset mode after execution
+      }
+    } else {
+      // Normal manual route calculation
+      if (museosSeleccionados.length === 0) return;
+      setCalculatingRoute(true);
+      try {
+        const museosData = museosSeleccionados.map(m => ({
+          id: m.id,
+          nombre: m.nombre,
+          lat: (m as any).coordenadas.lat,
+          lng: (m as any).coordenadas.lng,
+          precio: (m as any).precio,
+          tiempoEstimado: (m as any).tiempoEstimado
+        }));
+        
+        const response = await axios.post(`${API_BASE}/api/rutas`, {
+          origen: { lat: markerPos.lat, lng: markerPos.lng },
+          museos: museosData
+        });
+        setRoute(response.data);
+      } catch (error) {
+        console.error("Error calculating route", error);
+      } finally {
+        setCalculatingRoute(false);
+      }
     }
   };
 
   // Recalculate route when start point or selected museums change
-  React.useEffect(() => {
-    calculateRoute();
-  }, [markerPos, museosSeleccionados]);
+  useEffect(() => {
+    if (!markerPos) return;
+
+    // Solo cancelamos el recálculo si no estamos en modo planificacion Y no hay museos
+    if (!modoPlanificacion && museosSeleccionados.length === 0) {
+      setRoute(null);
+      setPlanningResult(null);
+      return;
+    }
+
+    performPlanning();
+  }, [markerPos, museosSeleccionados, modoPlanificacion]);
+
+
+
 
   const handleNavigateToComparar = () => {
     if (!markerPos || museosSeleccionados.length === 0) {
@@ -457,7 +548,8 @@ const MapaReal: React.FC = () => {
               ? 'Marca tu punto de partida'
               : museosSeleccionados.length === 0
                 ? 'Selecciona museos'
-                : 'Comparar Rutas'}
+                : 'Generar Ruta Cultural'}
+
           </button>
         </div>
       </aside>
@@ -483,26 +575,34 @@ const MapaReal: React.FC = () => {
                 </Marker>
               ) : null}
 
-          {museosSeleccionados.map(m => (
+          {museosSeleccionados.map((m, index) => (
             <Marker 
               key={`selected-${m.id}`} 
               position={[m.coordenadas.lat, m.coordenadas.lng]} 
-              icon={museumIcon}
+              icon={createSelectedIcon(index + 1)}
+              zIndexOffset={1000}
               eventHandlers={{
                 click: () => {
                   setSelectedMuseumForDetail(m);
                 }
               }}
-            />
+            >
+              <Popup>
+                <div className="font-bold">{index + 1}. {m.nombre}</div>
+                <div className="text-xs">Museo seleccionado</div>
+              </Popup>
+            </Marker>
           ))}
 
           {/* Display route polyline if available */}
           {route && route.geometry && (
             <Polyline
               positions={route.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]])}
-              color="#3b82f6"
-              weight={4}
-              opacity={0.7}
+              color="#0284c7"
+              weight={6}
+              opacity={0.8}
+              dashArray="10, 10"
+              lineCap="round"
             />
           )}
 
@@ -513,7 +613,8 @@ const MapaReal: React.FC = () => {
             <Marker 
               key={m.id} 
               position={[m.coordenadas.lat, m.coordenadas.lng]} 
-              icon={museumIcon}
+              icon={ghostMuseumIcon}
+              opacity={0.6}
               eventHandlers={{
                 click: () => {
                   setSelectedMuseumForDetail(m);
@@ -521,6 +622,7 @@ const MapaReal: React.FC = () => {
               }}
             />
           ))}
+
         </MapContainer>
 
         {/* Google Maps style floating detail card drawer overlay */}
@@ -633,16 +735,51 @@ const MapaReal: React.FC = () => {
         
         {/* AI Insight Tooltip - Solo se muestra si hay un inicio seleccionado */}
         {markerPos && (
-          <div className="absolute bottom-lg left-lg glass-panel p-md rounded-xl border-l-4 border-primary shadow-xl max-w-xs z-[400] pointer-events-none hidden md:block bg-surface-container/90">
+          <div className="absolute bottom-lg left-lg glass-panel p-md rounded-xl border-l-4 border-primary shadow-xl max-w-xs z-[400] bg-surface-container/90">
             <div className="flex items-center gap-base mb-xs text-primary">
-              <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              <MdAutoAwesome className="text-sm animate-pulse" />
               <span className="font-label-md text-xs font-bold">SUGERENCIA IA</span>
             </div>
-            <p className="text-body-sm text-on-surface leading-tight">
-              Punto de inicio establecido. Nuestro Agente de Transporte trazará tu ruta.
-            </p>
+            {planningResult ? (
+              <div className="space-y-sm">
+                <p className="text-body-sm text-on-surface leading-tight font-bold">
+                  ¡He encontrado el mejor recorrido para ti!
+                </p>
+                <div className="grid grid-cols-2 gap-sm text-[11px]">
+                  <div className="bg-surface-container-highest p-2 rounded-lg">
+                    <span className="block text-on-surface-variant font-bold">MUSEOS</span>
+                    <span className="text-primary font-bold text-sm">{planningResult.resumen.total_museos} recintos</span>
+                  </div>
+                  <div className="bg-surface-container-highest p-2 rounded-lg">
+                    <span className="block text-on-surface-variant font-bold">COSTO EST.</span>
+                    <span className="text-primary font-bold text-sm">Bs. {planningResult.resumen.presupuesto_estimado}</span>
+                  </div>
+                </div>
+                <div className="text-[11px] bg-secondary/10 p-2 rounded-lg border border-secondary/20">
+                  <span className="font-bold text-secondary block mb-1">TRANSPORTE RECOMENDADO:</span>
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                    {planningResult.transporte.map((t: any, i: number) => (
+                      <div key={i} className="truncate">
+                        • {t.hasta}: <span className="font-bold">{t.transporte.nombre || 'Trufi cercano'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setPlanningResult(null)}
+                  className="w-full py-1 text-[10px] text-on-surface-variant hover:text-primary transition-colors font-bold uppercase"
+                >
+                  Cerrar sugerencia
+                </button>
+              </div>
+            ) : (
+              <p className="text-body-sm text-on-surface leading-tight">
+                {calculatingRoute ? 'Calculando el mejor recorrido para ti...' : 'Punto de inicio establecido. Nuestro Agente de Transporte trazará tu ruta.'}
+              </p>
+            )}
           </div>
         )}
+
       </section>
     </div>
   );

@@ -53,7 +53,9 @@ export interface AppState {
   // Museos seleccionados
   museosSeleccionados: Museo[];
   toggleMuseo: (m: Museo) => void;
+  setMuseosSeleccionados: (ms: Museo[]) => void;
   limpiarMuseos: () => void;
+
 
   // Ubicación origen
   puntoPartida: { lat: number, lng: number, direccion: string } | null;
@@ -62,4 +64,9 @@ export interface AppState {
   // Ruta actual seleccionada
   rutaActiva: Ruta | null;
   setRutaActiva: (ruta: Ruta) => void;
+
+  // Estado de planificación inteligente
+  modoPlanificacion: boolean;
+  setModoPlanificacion: (m: boolean) => void;
 }
+

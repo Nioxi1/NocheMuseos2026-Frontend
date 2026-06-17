@@ -10,15 +10,17 @@ export const useMuseos = () => {
     const fetchMuseos = async () => {
       setLoading(true);
       try {
-        // En el futuro: const response = await fetch(`${API_BASE}/api/museos`);
-        // setMuseos(await response.json());
-        setMuseos(museosCochabamba);
+        const response = await fetch('http://localhost:8000/api/museos');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setMuseos(data);
       } catch (error) {
         console.error('Error fetching museos', error);
       } finally {
         setLoading(false);
       }
     };
+
 
     fetchMuseos();
   }, []);

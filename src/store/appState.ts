@@ -20,14 +20,20 @@ export const useAppStore = create<AppState>()(
           return { museosSeleccionados: [...state.museosSeleccionados, museo] };
         }
       }),
+      setMuseosSeleccionados: (museos) => set({ museosSeleccionados: museos }),
       limpiarMuseos: () => set({ museosSeleccionados: [] }),
+
 
       puntoPartida: null,
       setPuntoPartida: (punto) => set({ puntoPartida: punto }),
 
       rutaActiva: null,
       setRutaActiva: (ruta) => set({ rutaActiva: ruta }),
+
+      modoPlanificacion: false,
+      setModoPlanificacion: (m) => set({ modoPlanificacion: m }),
     }),
+
     {
       name: 'app-state',
       storage: createJSONStorage(() => sessionStorage),

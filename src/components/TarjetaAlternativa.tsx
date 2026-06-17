@@ -249,7 +249,7 @@ const TarjetaAlternativa = () => {
   const activeOption = opcionesRuta.find(opt => opt.id === seleccion);
   const activeRoute = activeOption?.rutaData;
   const activeRouteLegs = activeRoute?.geometryLegs || [];
-  const defaultCenter = mapSelection?.origen 
+  const defaultCenter = mapSelection?.origen
     ? [mapSelection.origen.lat, mapSelection.origen.lng] as [number, number]
     : [-17.3935, -66.1568] as [number, number];
 
@@ -257,17 +257,17 @@ const TarjetaAlternativa = () => {
   const transferPoints = useMemo(() => {
     if (!activeRouteLegs || activeRouteLegs.length < 2) return [];
     const points: { position: [number, number]; fromLine?: string; toLine?: string; type: string }[] = [];
-    
+
     for (let i = 0; i < activeRouteLegs.length - 1; i++) {
       const currLeg = activeRouteLegs[i];
       const nextLeg = activeRouteLegs[i + 1];
       if (!currLeg.positions?.length || !nextLeg.positions?.length) continue;
-      
+
       const lastPos = currLeg.positions[currLeg.positions.length - 1];
       const isBusTransfer = currLeg.mode === 'BUS' && nextLeg.mode === 'BUS';
       const isGetOff = currLeg.mode === 'BUS' && nextLeg.mode === 'WALK';
       const isGetOn = currLeg.mode === 'WALK' && nextLeg.mode === 'BUS';
-      
+
       if (isBusTransfer || isGetOff || isGetOn) {
         points.push({
           position: lastPos as [number, number],
@@ -285,7 +285,7 @@ const TarjetaAlternativa = () => {
     const transportPasos = opt.pasos.filter((p: any) => p.modo !== 'Espera');
     if (transportPasos.length === 0) return null;
     const totalMin = transportPasos.reduce((s: number, p: any) => s + p.duracionMinutos, 0) || 1;
-    
+
     return (
       <div className="flex items-center w-full h-6 rounded-full overflow-hidden bg-surface-container-highest/60 my-2">
         {transportPasos.map((paso: any, idx: number) => {
@@ -293,13 +293,13 @@ const TarjetaAlternativa = () => {
           const isBus = paso.modo === 'Bus';
           const isWalk = paso.modo === 'Caminata';
           const bgColor = isBus ? getLineColor(paso.lineaBus || 'default') : '#9e9e9e';
-          
+
           return (
             <div
               key={idx}
               className="h-full flex items-center justify-center relative group cursor-pointer"
-              style={{ 
-                width: `${width}%`, 
+              style={{
+                width: `${width}%`,
                 backgroundColor: bgColor,
                 minWidth: '20px'
               }}
@@ -310,7 +310,7 @@ const TarjetaAlternativa = () => {
               ) : isWalk ? (
                 <MdDirectionsWalk size={12} className="text-white" />
               ) : null}
-              
+
               {/* Tooltip on hover */}
               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[9px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
                 {isBus ? paso.lineaBus : 'A pie'} • {paso.duracionMinutos} min
@@ -326,7 +326,7 @@ const TarjetaAlternativa = () => {
   const renderDetailSteps = (opt: any) => {
     const transportPasos = opt.pasos.filter((p: any) => p.modo !== 'Espera');
     const visitaPasos = opt.pasos.filter((p: any) => p.modo === 'Espera');
-    
+
     return (
       <div className="mt-3 space-y-0 relative">
         {/* Vertical timeline connector */}
@@ -338,7 +338,7 @@ const TarjetaAlternativa = () => {
           const lineColor = isBus ? getLineColor(paso.lineaBus || 'default') : '#9e9e9e';
           const isFirst = idx === 0;
           const isLast = idx === transportPasos.length - 1;
-          
+
           return (
             <div key={idx} className="relative z-10">
               {/* Origin point for first step */}
@@ -352,7 +352,7 @@ const TarjetaAlternativa = () => {
               )}
 
               {/* The step itself */}
-              <div 
+              <div
                 className={clsx(
                   "flex items-stretch gap-3 rounded-lg transition-all",
                   hoveredLeg === idx && "bg-surface-container-highest/80"
@@ -364,7 +364,7 @@ const TarjetaAlternativa = () => {
                 <div className="w-[30px] flex flex-col items-center shrink-0">
                   {isBus ? (
                     <>
-                      <div 
+                      <div
                         className="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm shrink-0"
                         style={{ backgroundColor: lineColor }}
                       >
@@ -387,7 +387,7 @@ const TarjetaAlternativa = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       {isBus && (
-                        <span 
+                        <span
                           className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md shadow-sm"
                           style={{ backgroundColor: lineColor }}
                         >
@@ -468,14 +468,14 @@ const TarjetaAlternativa = () => {
               Compara tu Ruta
             </h1>
             <p className="text-[11px] text-on-surface-variant mt-0.5 leading-tight">
-              {loading 
-                ? 'Consultando rutas en Trufi App / OTP...' 
-                : mapSelection 
-                  ? `${opcionesRuta.length} alternativas encontradas • Pasaje Bs. 3.00/transporte` 
+              {loading
+                ? 'Consultando rutas en Trufi App / OTP...'
+                : mapSelection
+                  ? `${opcionesRuta.length} alternativas encontradas • Pasaje Bs. 3.00/transporte`
                   : 'Selecciona museos en la pestaña Mapa para ver rutas.'}
             </p>
           </div>
-          
+
           {/* First museum selector */}
           {mapSelection && mapSelection.museos && mapSelection.museos.length > 1 && (
             <div className="flex flex-col gap-1">
@@ -526,7 +526,7 @@ const TarjetaAlternativa = () => {
             <div className="text-center py-16">
               <MdDirectionsBus size={48} className="mx-auto text-outline/30 mb-4" />
               <p className="text-sm text-on-surface-variant mb-4">Necesitas seleccionar museos primero</p>
-              <button 
+              <button
                 onClick={() => navigate('/mapa')}
                 className="bg-primary hover:bg-primary/90 text-on-primary-fixed px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition-all"
               >
@@ -536,7 +536,7 @@ const TarjetaAlternativa = () => {
           ) : opcionesRuta.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-sm text-on-surface-variant mb-4">No se pudo calcular ninguna ruta.</p>
-              <button 
+              <button
                 onClick={() => navigate('/mapa')}
                 className="bg-primary hover:bg-primary/90 text-on-primary-fixed px-5 py-2.5 rounded-lg font-bold text-sm shadow-md"
               >
@@ -551,17 +551,17 @@ const TarjetaAlternativa = () => {
               const isExpanded = expandedRoute === opt.id;
 
               return (
-                <div 
+                <div
                   key={opt.id}
                   className={clsx(
                     "rounded-2xl transition-all duration-200 border-2 overflow-hidden",
-                    isSelected 
-                      ? "border-primary/60 bg-surface shadow-lg shadow-primary/5" 
+                    isSelected
+                      ? "border-primary/60 bg-surface shadow-lg shadow-primary/5"
                       : "border-transparent bg-surface-container/40 hover:bg-surface-container/70 hover:border-outline-variant/20",
                   )}
                 >
                   {/* Card header - clickable to select */}
-                  <div 
+                  <div
                     className="p-3 cursor-pointer"
                     onClick={() => {
                       setSeleccion(opt.id);
@@ -570,7 +570,7 @@ const TarjetaAlternativa = () => {
                   >
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
                           style={{ backgroundColor: opt.color }}
                         >
@@ -635,7 +635,7 @@ const TarjetaAlternativa = () => {
                     {opt.busLines && opt.busLines.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {opt.busLines.map((line: string, i: number) => (
-                          <span 
+                          <span
                             key={i}
                             className="text-[9px] font-bold text-white px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1"
                             style={{ backgroundColor: getLineColor(line) }}
@@ -672,7 +672,7 @@ const TarjetaAlternativa = () => {
                 <span>{activeOption.tiempo} • {activeOption.costo}</span>
               </div>
             )}
-            <button 
+            <button
               onClick={handleComenzar}
               className="w-full bg-primary hover:bg-primary/90 text-on-primary-fixed py-3 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] text-sm flex items-center justify-center gap-2"
             >
@@ -685,9 +685,9 @@ const TarjetaAlternativa = () => {
 
       {/* Interactive Map Section */}
       <section className="flex-grow w-full h-1/2 md:h-full relative map-container overflow-hidden bg-surface-container-lowest z-10">
-        <MapContainer 
-          center={defaultCenter} 
-          zoom={14} 
+        <MapContainer
+          center={defaultCenter}
+          zoom={14}
           className="w-full h-full"
         >
           <TileLayer
@@ -735,14 +735,14 @@ const TarjetaAlternativa = () => {
             const isHighlighted = hoveredLeg === idx;
 
             return (
-              <Polyline 
+              <Polyline
                 key={idx}
                 positions={leg.positions}
-                pathOptions={{ 
-                  color, 
-                  weight: isHighlighted ? weight + 3 : weight, 
-                  dashArray, 
-                  opacity: isHighlighted ? 1 : 0.8 
+                pathOptions={{
+                  color,
+                  weight: isHighlighted ? weight + 3 : weight,
+                  dashArray,
+                  opacity: isHighlighted ? 1 : 0.8
                 }}
               >
                 <Tooltip sticky>
@@ -811,7 +811,7 @@ const TarjetaAlternativa = () => {
         {activeOption && !loading && (
           <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3 z-[400] max-w-[280px]">
             <div className="flex items-center gap-2 mb-1">
-              <div 
+              <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
                 style={{ backgroundColor: activeOption.color }}
               >
@@ -824,7 +824,7 @@ const TarjetaAlternativa = () => {
             </div>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="font-semibold text-gray-700">⏱ {activeOption.tiempo}</span>
-              <span className="font-semibold text-gray-700">💰 {activeOption.costo}</span>
+              <span className="font-semibold text-gray-700">$Bs. {activeOption.costo}</span>
               <span className="text-gray-500">📏 {activeOption.distanciaKm} km</span>
             </div>
           </div>

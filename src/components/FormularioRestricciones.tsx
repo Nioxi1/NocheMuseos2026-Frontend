@@ -170,6 +170,10 @@ const FormularioRestricciones = () => {
         <button 
           className="w-full md:w-auto px-xl py-md bg-primary hover:bg-primary-container text-on-primary-fixed rounded-xl font-bold flex items-center justify-center gap-base hover:shadow-lg active:scale-95 transition-all text-sm"
           onClick={() => {
+            const { setModoPlanificacion, limpiarMuseos } = useAppStore.getState();
+            limpiarMuseos();
+            setModoPlanificacion(true);
+            
             // Ensure a starting point exists before navigating to the map
             if (!puntoPartida) {
               setPuntoPartida({
@@ -184,6 +188,7 @@ const FormularioRestricciones = () => {
           Ir al Mapa
           <MdLocationOn className="text-sm" />
         </button>
+
       </div>
     </div>
   );
